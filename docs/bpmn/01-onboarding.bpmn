@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_Onboarding"
+                  targetNamespace="https://github.com/khabibsirius/mathforkids/bpmn"
+                  exporter="hand-authored" exporterVersion="1.0">
+
+  <!--
+    Process 1 of 3 — Parent onboarding and child profile creation.
+
+    The security boundary is the PARENT account, not the child. A 5-year-old
+    never types a password: the parent authenticates once, then picks a child
+    profile. See docs/bpmn/02-practice-session.bpmn for what happens next.
+  -->
+
+  <bpmn:collaboration id="Collaboration_Onboarding">
+    <bpmn:participant id="Participant_Onboarding" name="Kids Math Learning — Onboarding" processRef="Process_Onboarding" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Onboarding" name="Parent onboarding and child profile setup" isExecutable="false">
+
+    <bpmn:laneSet id="LaneSet_Onboarding">
+      <bpmn:lane id="Lane_Parent" name="Parent">
+        <bpmn:flowNodeRef>Start_Open</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnterCreds</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnterChild</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Ready</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Web" name="Web App (React + Vite)">
+        <bpmn:flowNodeRef>Task_ShowAuth</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowError</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowProfile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowDash</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Api" name="API (NestJS) + PostgreSQL">
+        <bpmn:flowNodeRef>Task_Verify</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IssueJwt</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidateAge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_AgeError</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AgeError</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateProfile</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="Start_Open" name="Parent opens the app">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_ShowAuth" name="Show sign in / create account">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:userTask id="Task_EnterCreds" name="Enter email and password">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:incoming>Flow_Retry</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_Verify" name="Verify credentials (argon2id)">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Valid" name="Credentials valid?">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_ShowError" name="Show 401 message (no account enumeration)">
+      <bpmn:incoming>Flow_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Retry</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:serviceTask id="Task_IssueJwt" name="Issue parent access + refresh token">
+      <bpmn:incoming>Flow_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_ShowProfile" name="Show child profile form">
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:incoming>Flow_AgeRetry</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:userTask id="Task_EnterChild" name="Enter child's name and age">
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_ValidateAge" name="Validate age is 5–10">
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="Boundary_AgeError" name="Outside 5–10" attachedToRef="Task_ValidateAge" cancelActivity="true">
+      <bpmn:outgoing>Flow_AgeErr</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_Age" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_AgeError" name="Return 422 with kid-safe message">
+      <bpmn:incoming>Flow_AgeErr</bpmn:incoming>
+      <bpmn:outgoing>Flow_AgeRetry</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CreateProfile" name="Create profile, seed per-topic level from age">
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_ShowDash" name="Show child dashboard">
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_Ready" name="Child ready to play">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="Start_Open" targetRef="Task_ShowAuth" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_ShowAuth" targetRef="Task_EnterCreds" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_EnterCreds" targetRef="Task_Verify" />
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Task_Verify" targetRef="Gateway_Valid" />
+    <bpmn:sequenceFlow id="Flow_Yes" name="yes" sourceRef="Gateway_Valid" targetRef="Task_IssueJwt" />
+    <bpmn:sequenceFlow id="Flow_No" name="no" sourceRef="Gateway_Valid" targetRef="Task_ShowError" />
+    <bpmn:sequenceFlow id="Flow_Retry" name="try again" sourceRef="Task_ShowError" targetRef="Task_EnterCreds" />
+    <bpmn:sequenceFlow id="Flow_05" sourceRef="Task_IssueJwt" targetRef="Task_ShowProfile" />
+    <bpmn:sequenceFlow id="Flow_06" sourceRef="Task_ShowProfile" targetRef="Task_EnterChild" />
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="Task_EnterChild" targetRef="Task_ValidateAge" />
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_ValidateAge" targetRef="Task_CreateProfile" />
+    <bpmn:sequenceFlow id="Flow_AgeErr" sourceRef="Boundary_AgeError" targetRef="Task_AgeError" />
+    <bpmn:sequenceFlow id="Flow_AgeRetry" name="fix the age" sourceRef="Task_AgeError" targetRef="Task_ShowProfile" />
+    <bpmn:sequenceFlow id="Flow_09" sourceRef="Task_CreateProfile" targetRef="Task_ShowDash" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_ShowDash" targetRef="End_Ready" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="Diagram_Onboarding">
+    <bpmndi:BPMNPlane id="Plane_Onboarding" bpmnElement="Collaboration_Onboarding">
+
+      <bpmndi:BPMNShape id="Shape_Participant" bpmnElement="Participant_Onboarding" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2140" height="600" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Parent" bpmnElement="Lane_Parent" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="2110" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Web" bpmnElement="Lane_Web" isHorizontal="true">
+        <dc:Bounds x="190" y="240" width="2110" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Api" bpmnElement="Lane_Api" isHorizontal="true">
+        <dc:Bounds x="190" y="400" width="2110" height="280" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Start_Open" bpmnElement="Start_Open">
+        <dc:Bounds x="240" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="222" y="185" width="76" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowAuth" bpmnElement="Task_ShowAuth">
+        <dc:Bounds x="420" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EnterCreds" bpmnElement="Task_EnterCreds">
+        <dc:Bounds x="600" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Verify" bpmnElement="Task_Verify">
+        <dc:Bounds x="780" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Valid" bpmnElement="Gateway_Valid" isMarkerVisible="true">
+        <dc:Bounds x="960" y="455" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="944" y="512" width="83" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowError" bpmnElement="Task_ShowError">
+        <dc:Bounds x="1140" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_IssueJwt" bpmnElement="Task_IssueJwt">
+        <dc:Bounds x="1140" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowProfile" bpmnElement="Task_ShowProfile">
+        <dc:Bounds x="1320" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EnterChild" bpmnElement="Task_EnterChild">
+        <dc:Bounds x="1500" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ValidateAge" bpmnElement="Task_ValidateAge">
+        <dc:Bounds x="1680" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Boundary_AgeError" bpmnElement="Boundary_AgeError">
+        <dc:Bounds x="1712" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1752" y="512" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AgeError" bpmnElement="Task_AgeError">
+        <dc:Bounds x="1680" y="570" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CreateProfile" bpmnElement="Task_CreateProfile">
+        <dc:Bounds x="1860" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowDash" bpmnElement="Task_ShowDash">
+        <dc:Bounds x="2040" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Ready" bpmnElement="End_Ready">
+        <dc:Bounds x="2220" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2203" y="185" width="71" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_01" bpmnElement="Flow_01">
+        <di:waypoint x="276" y="160" /><di:waypoint x="350" y="160" /><di:waypoint x="350" y="320" /><di:waypoint x="420" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_02" bpmnElement="Flow_02">
+        <di:waypoint x="520" y="320" /><di:waypoint x="560" y="320" /><di:waypoint x="560" y="160" /><di:waypoint x="600" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_03" bpmnElement="Flow_03">
+        <di:waypoint x="700" y="160" /><di:waypoint x="740" y="160" /><di:waypoint x="740" y="480" /><di:waypoint x="780" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_04" bpmnElement="Flow_04">
+        <di:waypoint x="880" y="480" /><di:waypoint x="960" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Yes" bpmnElement="Flow_Yes">
+        <di:waypoint x="1010" y="480" /><di:waypoint x="1140" y="480" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1059" y="462" width="19" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_No" bpmnElement="Flow_No">
+        <di:waypoint x="985" y="455" /><di:waypoint x="985" y="300" /><di:waypoint x="1140" y="300" />
+        <bpmndi:BPMNLabel><dc:Bounds x="993" y="372" width="15" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Retry" bpmnElement="Flow_Retry">
+        <di:waypoint x="1190" y="280" /><di:waypoint x="1190" y="230" /><di:waypoint x="650" y="230" /><di:waypoint x="650" y="200" />
+        <bpmndi:BPMNLabel><dc:Bounds x="890" y="206" width="52" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_05" bpmnElement="Flow_05">
+        <di:waypoint x="1240" y="480" /><di:waypoint x="1280" y="480" /><di:waypoint x="1280" y="320" /><di:waypoint x="1320" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_06" bpmnElement="Flow_06">
+        <di:waypoint x="1420" y="320" /><di:waypoint x="1460" y="320" /><di:waypoint x="1460" y="160" /><di:waypoint x="1500" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_07" bpmnElement="Flow_07">
+        <di:waypoint x="1600" y="160" /><di:waypoint x="1640" y="160" /><di:waypoint x="1640" y="480" /><di:waypoint x="1680" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_08" bpmnElement="Flow_08">
+        <di:waypoint x="1780" y="480" /><di:waypoint x="1860" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_AgeErr" bpmnElement="Flow_AgeErr">
+        <di:waypoint x="1730" y="538" /><di:waypoint x="1730" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_AgeRetry" bpmnElement="Flow_AgeRetry">
+        <di:waypoint x="1680" y="610" /><di:waypoint x="1370" y="610" /><di:waypoint x="1370" y="360" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1489" y="586" width="72" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_09" bpmnElement="Flow_09">
+        <di:waypoint x="1960" y="480" /><di:waypoint x="2000" y="480" /><di:waypoint x="2000" y="320" /><di:waypoint x="2040" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+        <di:waypoint x="2140" y="320" /><di:waypoint x="2180" y="320" /><di:waypoint x="2180" y="160" /><di:waypoint x="2220" y="160" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

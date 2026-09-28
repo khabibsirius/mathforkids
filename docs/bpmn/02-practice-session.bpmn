@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_PracticeSession"
+                  targetNamespace="https://github.com/khabibsirius/mathforkids/bpmn"
+                  exporter="hand-authored" exporterVersion="1.0">
+
+  <!--
+    Process 2 of 3 — the practice session. This is the product.
+
+    Three decisions are visible in the shape of this diagram:
+
+    1. The correct answer is written to the database and never serialised to
+       the client. Task_Validate re-checks it server-side.
+    2. On a wrong answer the flow FORKS. The child gets feedback immediately
+       from a static hint; the LLM explanation arrives later and replaces it.
+       A 6-year-old will not wait 3 seconds staring at a frozen screen.
+    3. The idle timer is NON-INTERRUPTING. It nudges; it never ends the turn
+       and never costs points. There is no clock pressure in this product.
+  -->
+
+  <bpmn:collaboration id="Collaboration_Practice">
+    <bpmn:participant id="Participant_Practice" name="Kids Math Learning — Practice Session" processRef="Process_Practice" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Practice" name="Answer exercises, score them, adapt difficulty" isExecutable="false">
+
+    <bpmn:laneSet id="LaneSet_Practice">
+      <bpmn:lane id="Lane_Child" name="Child">
+        <bpmn:flowNodeRef>Start_Play</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Answer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_Nudge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Session</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Web" name="Web App (React + Vite)">
+        <bpmn:flowNodeRef>Task_StartSession</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowQuestion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Nudge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Feedback</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SwapHint</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_HintShown</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Results</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Api" name="API (NestJS)">
+        <bpmn:flowNodeRef>Task_CreateSession</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenExercise</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Validate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_Reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Rejected</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Correct</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AwardXp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Fork</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InstantFeedback</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CallActivity_Tutor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Merge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UpdateProgress</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Done</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Summary</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Db" name="PostgreSQL">
+        <bpmn:flowNodeRef>Task_StoreExercise</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SaveAttempt</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="Start_Play" name="Child taps a topic">
+      <bpmn:outgoing>P_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_StartSession" name="Start a session">
+      <bpmn:incoming>P_01</bpmn:incoming>
+      <bpmn:outgoing>P_02</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:serviceTask id="Task_CreateSession" name="Open session, read this child's level for this topic">
+      <bpmn:incoming>P_02</bpmn:incoming>
+      <bpmn:outgoing>P_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_GenExercise" name="Generate exercise and plausible distractors">
+      <bpmn:incoming>P_03</bpmn:incoming>
+      <bpmn:incoming>P_More</bpmn:incoming>
+      <bpmn:outgoing>P_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_StoreExercise" name="Store exercise — correct answer stays server-side">
+      <bpmn:incoming>P_04</bpmn:incoming>
+      <bpmn:outgoing>P_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_ShowQuestion" name="Show the question with big tappable choices">
+      <bpmn:incoming>P_05</bpmn:incoming>
+      <bpmn:outgoing>P_06</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:userTask id="Task_Answer" name="Answer">
+      <bpmn:incoming>P_06</bpmn:incoming>
+      <bpmn:incoming>P_NudgeBack</bpmn:incoming>
+      <bpmn:outgoing>P_07</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:boundaryEvent id="Boundary_Nudge" name="idle 45s" attachedToRef="Task_Answer" cancelActivity="false">
+      <bpmn:outgoing>P_Nudge</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Nudge" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="Task_Nudge" name="Wiggle the choices — no penalty, no timer shown">
+      <bpmn:incoming>P_Nudge</bpmn:incoming>
+      <bpmn:outgoing>P_NudgeBack</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:serviceTask id="Task_Validate" name="Validate: child owns session, exercise not already answered">
+      <bpmn:incoming>P_07</bpmn:incoming>
+      <bpmn:outgoing>P_08</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="Boundary_Reject" name="not allowed" attachedToRef="Task_Validate" cancelActivity="true">
+      <bpmn:outgoing>P_Rej</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_Reject" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_Reject" name="Return 409 with a kid-safe message">
+      <bpmn:incoming>P_Rej</bpmn:incoming>
+      <bpmn:outgoing>P_RejEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_Rejected" name="Attempt rejected">
+      <bpmn:incoming>P_RejEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_Correct" name="Answer correct?">
+      <bpmn:incoming>P_08</bpmn:incoming>
+      <bpmn:outgoing>P_Yes</bpmn:outgoing>
+      <bpmn:outgoing>P_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AwardXp" name="Award XP plus combo bonus">
+      <bpmn:incoming>P_Yes</bpmn:incoming>
+      <bpmn:outgoing>P_09</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:parallelGateway id="Gateway_Fork" name="answer now, explain shortly">
+      <bpmn:incoming>P_No</bpmn:incoming>
+      <bpmn:outgoing>P_Fork1</bpmn:outgoing>
+      <bpmn:outgoing>P_Fork2</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="Task_InstantFeedback" name="Return &quot;not quite&quot; with a safe static hint">
+      <bpmn:incoming>P_Fork1</bpmn:incoming>
+      <bpmn:outgoing>P_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:callActivity id="CallActivity_Tutor" name="AI Math Tutor hint" calledElement="Process_AiTutor">
+      <bpmn:incoming>P_Fork2</bpmn:incoming>
+      <bpmn:outgoing>P_Tutor</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <bpmn:exclusiveGateway id="Gateway_Merge">
+      <bpmn:incoming>P_09</bpmn:incoming>
+      <bpmn:incoming>P_10</bpmn:incoming>
+      <bpmn:outgoing>P_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_SaveAttempt" name="Append attempt: answer, correct, ms, level">
+      <bpmn:incoming>P_11</bpmn:incoming>
+      <bpmn:outgoing>P_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_Feedback" name="Cheer, or show &quot;not quite&quot; with the hint">
+      <bpmn:incoming>P_12</bpmn:incoming>
+      <bpmn:outgoing>P_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SwapHint" name="Swap in the tutor's explanation when it lands">
+      <bpmn:incoming>P_Tutor</bpmn:incoming>
+      <bpmn:outgoing>P_HintEnd</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_HintShown" name="Explanation shown">
+      <bpmn:incoming>P_HintEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_UpdateProgress" name="Update streak, per-topic level, badges">
+      <bpmn:incoming>P_13</bpmn:incoming>
+      <bpmn:outgoing>P_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Done" name="10 questions done?">
+      <bpmn:incoming>P_14</bpmn:incoming>
+      <bpmn:outgoing>P_DoneYes</bpmn:outgoing>
+      <bpmn:outgoing>P_More</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_Summary" name="Build session summary">
+      <bpmn:incoming>P_DoneYes</bpmn:incoming>
+      <bpmn:outgoing>P_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_Results" name="Show results and any new badges">
+      <bpmn:incoming>P_15</bpmn:incoming>
+      <bpmn:outgoing>P_16</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_Session" name="Session complete">
+      <bpmn:incoming>P_16</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="P_01" sourceRef="Start_Play" targetRef="Task_StartSession" />
+    <bpmn:sequenceFlow id="P_02" sourceRef="Task_StartSession" targetRef="Task_CreateSession" />
+    <bpmn:sequenceFlow id="P_03" sourceRef="Task_CreateSession" targetRef="Task_GenExercise" />
+    <bpmn:sequenceFlow id="P_04" sourceRef="Task_GenExercise" targetRef="Task_StoreExercise" />
+    <bpmn:sequenceFlow id="P_05" sourceRef="Task_StoreExercise" targetRef="Task_ShowQuestion" />
+    <bpmn:sequenceFlow id="P_06" sourceRef="Task_ShowQuestion" targetRef="Task_Answer" />
+    <bpmn:sequenceFlow id="P_Nudge" sourceRef="Boundary_Nudge" targetRef="Task_Nudge" />
+    <bpmn:sequenceFlow id="P_NudgeBack" name="still their turn" sourceRef="Task_Nudge" targetRef="Task_Answer" />
+    <bpmn:sequenceFlow id="P_07" sourceRef="Task_Answer" targetRef="Task_Validate" />
+    <bpmn:sequenceFlow id="P_Rej" sourceRef="Boundary_Reject" targetRef="Task_Reject" />
+    <bpmn:sequenceFlow id="P_RejEnd" sourceRef="Task_Reject" targetRef="End_Rejected" />
+    <bpmn:sequenceFlow id="P_08" sourceRef="Task_Validate" targetRef="Gateway_Correct" />
+    <bpmn:sequenceFlow id="P_Yes" name="yes" sourceRef="Gateway_Correct" targetRef="Task_AwardXp" />
+    <bpmn:sequenceFlow id="P_No" name="no" sourceRef="Gateway_Correct" targetRef="Gateway_Fork" />
+    <bpmn:sequenceFlow id="P_Fork1" name="immediately" sourceRef="Gateway_Fork" targetRef="Task_InstantFeedback" />
+    <bpmn:sequenceFlow id="P_Fork2" name="in the background" sourceRef="Gateway_Fork" targetRef="CallActivity_Tutor" />
+    <bpmn:sequenceFlow id="P_09" sourceRef="Task_AwardXp" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="P_10" sourceRef="Task_InstantFeedback" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="P_11" sourceRef="Gateway_Merge" targetRef="Task_SaveAttempt" />
+    <bpmn:sequenceFlow id="P_12" sourceRef="Task_SaveAttempt" targetRef="Task_Feedback" />
+    <bpmn:sequenceFlow id="P_Tutor" name="hint ready" sourceRef="CallActivity_Tutor" targetRef="Task_SwapHint" />
+    <bpmn:sequenceFlow id="P_HintEnd" sourceRef="Task_SwapHint" targetRef="End_HintShown" />
+    <bpmn:sequenceFlow id="P_13" sourceRef="Task_Feedback" targetRef="Task_UpdateProgress" />
+    <bpmn:sequenceFlow id="P_14" sourceRef="Task_UpdateProgress" targetRef="Gateway_Done" />
+    <bpmn:sequenceFlow id="P_More" name="no — next question, level may shift" sourceRef="Gateway_Done" targetRef="Task_GenExercise" />
+    <bpmn:sequenceFlow id="P_DoneYes" name="yes" sourceRef="Gateway_Done" targetRef="Task_Summary" />
+    <bpmn:sequenceFlow id="P_15" sourceRef="Task_Summary" targetRef="Task_Results" />
+    <bpmn:sequenceFlow id="P_16" sourceRef="Task_Results" targetRef="End_Session" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="Diagram_Practice">
+    <bpmndi:BPMNPlane id="Plane_Practice" bpmnElement="Collaboration_Practice">
+
+      <bpmndi:BPMNShape id="S_Participant" bpmnElement="Participant_Practice" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="3400" height="900" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Lane_Child" bpmnElement="Lane_Child" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="3370" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Lane_Web" bpmnElement="Lane_Web" isHorizontal="true">
+        <dc:Bounds x="190" y="240" width="3370" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Lane_Api" bpmnElement="Lane_Api" isHorizontal="true">
+        <dc:Bounds x="190" y="400" width="3370" height="420" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Lane_Db" bpmnElement="Lane_Db" isHorizontal="true">
+        <dc:Bounds x="190" y="820" width="3370" height="160" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="S_Start_Play" bpmnElement="Start_Play">
+        <dc:Bounds x="240" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="224" y="185" width="70" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_StartSession" bpmnElement="Task_StartSession">
+        <dc:Bounds x="420" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_CreateSession" bpmnElement="Task_CreateSession">
+        <dc:Bounds x="600" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_GenExercise" bpmnElement="Task_GenExercise">
+        <dc:Bounds x="780" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_StoreExercise" bpmnElement="Task_StoreExercise">
+        <dc:Bounds x="960" y="860" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_ShowQuestion" bpmnElement="Task_ShowQuestion">
+        <dc:Bounds x="1140" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Answer" bpmnElement="Task_Answer">
+        <dc:Bounds x="1320" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Boundary_Nudge" bpmnElement="Boundary_Nudge">
+        <dc:Bounds x="1327" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1264" y="192" width="48" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Nudge" bpmnElement="Task_Nudge">
+        <dc:Bounds x="1320" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Validate" bpmnElement="Task_Validate">
+        <dc:Bounds x="1500" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Boundary_Reject" bpmnElement="Boundary_Reject">
+        <dc:Bounds x="1532" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1572" y="512" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Reject" bpmnElement="Task_Reject">
+        <dc:Bounds x="1500" y="570" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_Rejected" bpmnElement="End_Rejected">
+        <dc:Bounds x="1532" y="722" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1518" y="765" width="65" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Correct" bpmnElement="Gateway_Correct" isMarkerVisible="true">
+        <dc:Bounds x="1680" y="455" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1668" y="418" width="76" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_AwardXp" bpmnElement="Task_AwardXp">
+        <dc:Bounds x="1860" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Fork" bpmnElement="Gateway_Fork">
+        <dc:Bounds x="1860" y="585" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1845" y="642" width="82" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_InstantFeedback" bpmnElement="Task_InstantFeedback">
+        <dc:Bounds x="2040" y="570" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_CallActivity_Tutor" bpmnElement="CallActivity_Tutor">
+        <dc:Bounds x="2040" y="700" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Merge" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <dc:Bounds x="2220" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_SaveAttempt" bpmnElement="Task_SaveAttempt">
+        <dc:Bounds x="2400" y="860" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Feedback" bpmnElement="Task_Feedback">
+        <dc:Bounds x="2580" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_SwapHint" bpmnElement="Task_SwapHint">
+        <dc:Bounds x="2760" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_HintShown" bpmnElement="End_HintShown">
+        <dc:Bounds x="2940" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2926" y="345" width="66" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_UpdateProgress" bpmnElement="Task_UpdateProgress">
+        <dc:Bounds x="2760" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Done" bpmnElement="Gateway_Done" isMarkerVisible="true">
+        <dc:Bounds x="2940" y="455" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2923" y="418" width="86" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Summary" bpmnElement="Task_Summary">
+        <dc:Bounds x="3120" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_Results" bpmnElement="Task_Results">
+        <dc:Bounds x="3300" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_Session" bpmnElement="End_Session">
+        <dc:Bounds x="3480" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3464" y="185" width="69" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_P_01" bpmnElement="P_01">
+        <di:waypoint x="276" y="160" /><di:waypoint x="350" y="160" /><di:waypoint x="350" y="320" /><di:waypoint x="420" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_02" bpmnElement="P_02">
+        <di:waypoint x="520" y="320" /><di:waypoint x="560" y="320" /><di:waypoint x="560" y="480" /><di:waypoint x="600" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_03" bpmnElement="P_03">
+        <di:waypoint x="700" y="480" /><di:waypoint x="780" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_04" bpmnElement="P_04">
+        <di:waypoint x="880" y="480" /><di:waypoint x="920" y="480" /><di:waypoint x="920" y="900" /><di:waypoint x="960" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_05" bpmnElement="P_05">
+        <di:waypoint x="1060" y="900" /><di:waypoint x="1100" y="900" /><di:waypoint x="1100" y="320" /><di:waypoint x="1140" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_06" bpmnElement="P_06">
+        <di:waypoint x="1240" y="320" /><di:waypoint x="1280" y="320" /><di:waypoint x="1280" y="160" /><di:waypoint x="1320" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Nudge" bpmnElement="P_Nudge">
+        <di:waypoint x="1345" y="218" /><di:waypoint x="1345" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_NudgeBack" bpmnElement="P_NudgeBack">
+        <di:waypoint x="1420" y="320" /><di:waypoint x="1445" y="320" /><di:waypoint x="1445" y="230" /><di:waypoint x="1395" y="230" /><di:waypoint x="1395" y="200" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1450" y="236" width="88" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_07" bpmnElement="P_07">
+        <di:waypoint x="1420" y="160" /><di:waypoint x="1470" y="160" /><di:waypoint x="1470" y="480" /><di:waypoint x="1500" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Rej" bpmnElement="P_Rej">
+        <di:waypoint x="1550" y="538" /><di:waypoint x="1550" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_RejEnd" bpmnElement="P_RejEnd">
+        <di:waypoint x="1550" y="650" /><di:waypoint x="1550" y="722" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_08" bpmnElement="P_08">
+        <di:waypoint x="1600" y="480" /><di:waypoint x="1680" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Yes" bpmnElement="P_Yes">
+        <di:waypoint x="1730" y="480" /><di:waypoint x="1860" y="480" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1779" y="462" width="19" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_No" bpmnElement="P_No">
+        <di:waypoint x="1705" y="505" /><di:waypoint x="1705" y="610" /><di:waypoint x="1860" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1713" y="540" width="15" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Fork1" bpmnElement="P_Fork1">
+        <di:waypoint x="1910" y="610" /><di:waypoint x="2040" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1943" y="592" width="64" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Fork2" bpmnElement="P_Fork2">
+        <di:waypoint x="1885" y="635" /><di:waypoint x="1885" y="740" /><di:waypoint x="2040" y="740" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1893" y="686" width="99" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_09" bpmnElement="P_09">
+        <di:waypoint x="1960" y="480" /><di:waypoint x="2220" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_10" bpmnElement="P_10">
+        <di:waypoint x="2140" y="610" /><di:waypoint x="2190" y="610" /><di:waypoint x="2190" y="480" /><di:waypoint x="2220" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_11" bpmnElement="P_11">
+        <di:waypoint x="2270" y="480" /><di:waypoint x="2310" y="480" /><di:waypoint x="2310" y="900" /><di:waypoint x="2400" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_12" bpmnElement="P_12">
+        <di:waypoint x="2500" y="900" /><di:waypoint x="2540" y="900" /><di:waypoint x="2540" y="320" /><di:waypoint x="2580" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_Tutor" bpmnElement="P_Tutor">
+        <di:waypoint x="2140" y="740" /><di:waypoint x="2730" y="740" /><di:waypoint x="2730" y="320" /><di:waypoint x="2760" y="320" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2400" y="716" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_HintEnd" bpmnElement="P_HintEnd">
+        <di:waypoint x="2860" y="320" /><di:waypoint x="2940" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_13" bpmnElement="P_13">
+        <di:waypoint x="2680" y="320" /><di:waypoint x="2700" y="320" /><di:waypoint x="2700" y="480" /><di:waypoint x="2760" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_14" bpmnElement="P_14">
+        <di:waypoint x="2860" y="480" /><di:waypoint x="2940" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_More" bpmnElement="P_More">
+        <di:waypoint x="2965" y="505" /><di:waypoint x="2965" y="800" /><di:waypoint x="730" y="800" /><di:waypoint x="730" y="480" /><di:waypoint x="780" y="480" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1740" y="776" width="180" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_DoneYes" bpmnElement="P_DoneYes">
+        <di:waypoint x="2990" y="480" /><di:waypoint x="3120" y="480" />
+        <bpmndi:BPMNLabel><dc:Bounds x="3039" y="462" width="19" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_15" bpmnElement="P_15">
+        <di:waypoint x="3220" y="480" /><di:waypoint x="3260" y="480" /><di:waypoint x="3260" y="320" /><di:waypoint x="3300" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_P_16" bpmnElement="P_16">
+        <di:waypoint x="3400" y="320" /><di:waypoint x="3440" y="320" /><di:waypoint x="3440" y="160" /><di:waypoint x="3480" y="160" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

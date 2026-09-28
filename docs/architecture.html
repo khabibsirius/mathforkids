@@ -1,0 +1,1084 @@
+<title>Mathforkids Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#F2F5FA; --surface:#FFFFFF; --surface-2:#E9EEF6; --surface-3:#DDE5F1;
+  --ink:#16243D; --ink-soft:#56657F; --ink-faint:#8494AD;
+  --grid:#DBE3EF; --rule:#C6D1E2;
+  --pen:#2B4FC7; --pen-soft:#E4EAFB;
+  --red:#BE3A2B; --red-soft:#FBE7E4;
+  --green:#15724A; --green-soft:#DEF2E8;
+  --amber:#8A6210; --amber-soft:#FAEED6;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','Cascadia Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D131E; --surface:#141C2A; --surface-2:#1A2333; --surface-3:#222D40;
+    --ink:#E5EBF6; --ink-soft:#9AA8C2; --ink-faint:#6E7D99;
+    --grid:#1C2637; --rule:#2B3648;
+    --pen:#88A4FF; --pen-soft:#1A2440;
+    --red:#F08274; --red-soft:#33201E;
+    --green:#54C494; --green-soft:#12301F;
+    --amber:#DFB055; --amber-soft:#2E2413;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D131E; --surface:#141C2A; --surface-2:#1A2333; --surface-3:#222D40;
+  --ink:#E5EBF6; --ink-soft:#9AA8C2; --ink-faint:#6E7D99;
+  --grid:#1C2637; --rule:#2B3648;
+  --pen:#88A4FF; --pen-soft:#1A2440;
+  --red:#F08274; --red-soft:#33201E;
+  --green:#54C494; --green-soft:#12301F;
+  --amber:#DFB055; --amber-soft:#2E2413;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:15px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.shell{max-width:1300px; margin:0 auto; padding-inline:20px; padding-block:0 72px}
+
+/* ---------- masthead ---------- */
+.mast{padding-block:56px 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--pen); margin:0 0 18px
+}
+h1{
+  font-family:var(--display); font-weight:800;
+  font-size:clamp(2.2rem,6vw,3.6rem); line-height:1.02;
+  letter-spacing:-.025em; margin:0 0 18px; text-wrap:balance;
+}
+.standfirst{
+  font-size:clamp(1rem,2.2vw,1.2rem); color:var(--ink-soft);
+  max-width:60ch; margin:0 0 28px; text-wrap:pretty;
+}
+.chips{display:flex; flex-wrap:wrap; gap:8px; list-style:none; margin:0; padding:0}
+.chips li{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.02em;
+  padding:5px 11px; border:1px solid var(--rule); border-radius:999px;
+  background:var(--surface); color:var(--ink-soft);
+}
+.chips li b{color:var(--ink); font-weight:500}
+
+/* ---------- layout ---------- */
+.layout{display:block}
+@media (min-width:1040px){
+  .layout{display:grid; grid-template-columns:186px minmax(0,1fr); gap:56px; align-items:start}
+  .toc{position:sticky; top:28px; display:block}
+}
+.toc{display:none}
+.toc ol{list-style:none; margin:32px 0 0; padding:0; border-left:2px solid var(--rule)}
+.toc li{margin:0}
+.toc a{
+  display:block; padding:6px 0 6px 14px; margin-left:-2px;
+  border-left:2px solid transparent;
+  font-size:12.5px; line-height:1.4; color:var(--ink-faint); text-decoration:none;
+}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--pen); border-left-color:var(--pen); font-weight:600}
+.toc a:focus-visible{outline:2px solid var(--pen); outline-offset:2px; border-radius:3px}
+
+main{min-width:0; padding-top:12px}
+section{padding-block:44px; border-bottom:1px solid var(--rule)}
+section:last-of-type{border-bottom:0}
+h2{
+  font-family:var(--display); font-weight:700;
+  font-size:clamp(1.45rem,3.2vw,2rem); line-height:1.12;
+  letter-spacing:-.018em; margin:0 0 6px; text-wrap:balance;
+}
+.sec-no{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:10px
+}
+h3{
+  font-family:var(--display); font-weight:700; font-size:1.08rem;
+  letter-spacing:-.01em; margin:34px 0 8px; text-wrap:balance;
+}
+h4{
+  font-family:var(--body); font-weight:600; font-size:.9rem;
+  letter-spacing:.01em; margin:22px 0 6px;
+}
+p{margin:0 0 16px; max-width:68ch; text-wrap:pretty}
+.lede{font-size:1.02rem; color:var(--ink-soft); max-width:66ch}
+ul,ol{max-width:68ch; padding-left:22px; margin:0 0 16px}
+li{margin-bottom:7px}
+strong{font-weight:600}
+code{
+  font-family:var(--mono); font-size:.86em;
+  background:var(--surface-2); padding:1.5px 5px; border-radius:4px;
+  color:var(--ink); word-break:break-word;
+}
+a{color:var(--pen)}
+
+/* ---------- figures ---------- */
+figure{margin:26px 0 8px}
+.scroll{
+  overflow-x:auto; border:1px solid var(--rule); border-radius:10px;
+  background-color:var(--surface);
+  background-image:
+    repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 28px);
+}
+.scroll svg{display:block}
+figcaption{
+  font-size:12.5px; color:var(--ink-soft); margin-top:10px;
+  max-width:70ch; line-height:1.55;
+}
+figcaption b{color:var(--ink); font-weight:600}
+.wide-note{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-faint); margin:0 0 8px;
+}
+
+/* svg vocabulary */
+.lane-fill{fill:var(--surface-2)}
+.lane-line{stroke:var(--rule); stroke-width:1; fill:none}
+.pool-line{stroke:var(--ink-faint); stroke-width:1.4; fill:none}
+.lane-label{
+  font-family:var(--body); font-weight:600; font-size:10px;
+  letter-spacing:.09em; fill:var(--ink-soft); text-anchor:middle;
+}
+.task{fill:var(--surface); stroke:var(--rule); stroke-width:1.4}
+.task-call{fill:var(--surface); stroke:var(--ink-soft); stroke-width:3.2}
+.tl{font-family:var(--body); font-weight:500; font-size:10px; fill:var(--ink); text-anchor:middle}
+.ev{fill:var(--surface); stroke:var(--ink-soft); stroke-width:1.7}
+.ev-end{fill:var(--surface); stroke:var(--ink); stroke-width:3.4}
+.ev-bnd{fill:var(--surface); stroke:var(--ink-soft); stroke-width:1.5}
+.ev-mark{fill:none; stroke:var(--ink-soft); stroke-width:1.3}
+.evl{font-family:var(--body); font-size:9.5px; fill:var(--ink-soft); text-anchor:middle}
+.gw{fill:var(--surface); stroke:var(--ink-soft); stroke-width:1.5}
+.gwm{fill:none; stroke:var(--ink); stroke-width:1.9; stroke-linecap:round}
+.gwl{font-family:var(--body); font-weight:600; font-size:9.5px; fill:var(--ink); text-anchor:middle}
+.fl{fill:none; stroke:var(--ink-soft); stroke-width:1.5; marker-end:url(#ar)}
+.fl-ok{fill:none; stroke:var(--green); stroke-width:1.8; marker-end:url(#ar-ok)}
+.fl-no{fill:none; stroke:var(--red); stroke-width:1.8; marker-end:url(#ar-no)}
+.fl-msg{fill:none; stroke:var(--ink-faint); stroke-width:1.4; stroke-dasharray:6 4; marker-end:url(#ar-msg)}
+.el{font-family:var(--mono); font-size:9px; fill:var(--ink-soft); text-anchor:middle}
+.el-ok{fill:var(--green)}
+.el-no{fill:var(--red)}
+.mk{fill:var(--ink-soft)}
+.mk-ok{fill:var(--green)}
+.mk-no{fill:var(--red)}
+.mk-msg{fill:var(--surface); stroke:var(--ink-faint); stroke-width:1.2}
+.arch-box{fill:var(--surface); stroke:var(--rule); stroke-width:1.5}
+.arch-ext{fill:var(--amber-soft); stroke:var(--amber); stroke-width:1.5}
+.arch-bound{fill:none; stroke:var(--pen); stroke-width:1.4; stroke-dasharray:7 5}
+.at{font-family:var(--body); font-weight:600; font-size:11.5px; fill:var(--ink); text-anchor:middle}
+.as{font-family:var(--mono); font-size:9.5px; fill:var(--ink-soft); text-anchor:middle}
+
+/* ---------- tables ---------- */
+.tbl{overflow-x:auto; margin:20px 0; border:1px solid var(--rule); border-radius:10px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:13px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--rule); vertical-align:top}
+thead th{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-soft); font-weight:500; background:var(--surface-2); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.m,th.m{font-family:var(--mono); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums}
+td.num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+.verb{
+  font-family:var(--mono); font-size:10.5px; font-weight:500;
+  padding:1px 6px; border-radius:4px; background:var(--pen-soft); color:var(--pen);
+}
+
+/* ---------- callouts ---------- */
+.note{
+  border-left:3px solid var(--pen); background:var(--surface);
+  padding:16px 20px; margin:22px 0; border-radius:0 8px 8px 0; max-width:70ch;
+}
+.note.warn{border-left-color:var(--amber)}
+.note.stop{border-left-color:var(--red)}
+.note p:last-child{margin-bottom:0}
+.note-h{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--pen); margin:0 0 7px; display:block;
+}
+.note.warn .note-h{color:var(--amber)}
+.note.stop .note-h{color:var(--red)}
+
+pre{
+  font-family:var(--mono); font-size:12px; line-height:1.6;
+  background:var(--surface); border:1px solid var(--rule); border-radius:8px;
+  padding:16px 18px; overflow-x:auto; margin:18px 0;
+}
+pre .c{color:var(--ink-faint)}
+pre .k{color:var(--pen)}
+pre .s{color:var(--green)}
+
+/* decision cards */
+.decks{display:grid; gap:14px; margin:24px 0; grid-template-columns:1fr}
+@media(min-width:720px){.decks{grid-template-columns:repeat(3,1fr)}}
+.deck{background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:18px}
+.deck h4{margin:0 0 8px; font-family:var(--display); font-weight:700; font-size:.98rem}
+.deck p{font-size:13px; color:var(--ink-soft); margin:0; max-width:none}
+.deck .tag{
+  font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-faint); display:block; margin-bottom:9px;
+}
+
+/* risk rows */
+.risk{display:grid; gap:0; margin:22px 0; border:1px solid var(--rule); border-radius:10px; overflow:hidden}
+.risk-row{display:grid; grid-template-columns:1fr; gap:0; background:var(--surface); border-bottom:1px solid var(--rule)}
+.risk-row:last-child{border-bottom:0}
+@media(min-width:680px){.risk-row{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}}
+.risk-what,.risk-fix{padding:15px 18px}
+.risk-fix{border-top:1px solid var(--rule); background:var(--surface-2)}
+@media(min-width:680px){.risk-fix{border-top:0; border-left:1px solid var(--rule)}}
+.risk-what b{display:block; font-size:13.5px; margin-bottom:4px}
+.risk-what span,.risk-fix span{font-size:12.5px; color:var(--ink-soft); line-height:1.55}
+.sev{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
+  padding:2px 7px; border-radius:4px; margin-right:8px; vertical-align:2px;
+}
+.sev-hi{background:var(--red-soft); color:var(--red)}
+.sev-md{background:var(--amber-soft); color:var(--amber)}
+.sev-lo{background:var(--green-soft); color:var(--green)}
+
+/* phase plan */
+.phases{margin:24px 0; border:1px solid var(--rule); border-radius:10px; overflow:hidden; background:var(--surface)}
+.phase{display:grid; grid-template-columns:38px 1fr; gap:0; border-bottom:1px solid var(--rule)}
+.phase:last-child{border-bottom:0}
+@media(min-width:700px){.phase{grid-template-columns:38px 150px 1fr 64px}}
+.ph-n{
+  font-family:var(--mono); font-size:12px; color:var(--ink-faint);
+  padding:14px 0 14px 16px; font-variant-numeric:tabular-nums;
+}
+.ph-t{padding:14px 12px 4px 0; font-weight:600; font-size:13.5px}
+@media(min-width:700px){.ph-t{padding:14px 12px 14px 0}}
+.ph-d{padding:0 16px 14px 54px; font-size:12.5px; color:var(--ink-soft); line-height:1.55}
+@media(min-width:700px){.ph-d{padding:14px 12px 14px 0}}
+.ph-h{
+  font-family:var(--mono); font-size:12px; color:var(--ink); padding:14px 16px 14px 0;
+  text-align:right; font-variant-numeric:tabular-nums; display:none;
+}
+@media(min-width:700px){.ph-h{display:block}}
+.ph-bar{grid-column:1/-1; height:3px; background:var(--pen-soft)}
+.ph-bar i{display:block; height:100%; background:var(--pen)}
+
+.totalrow{
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:14px 16px; background:var(--surface-2); font-family:var(--mono); font-size:13px;
+  border-top:1px solid var(--rule);
+}
+.totalrow b{font-weight:500; font-size:16px}
+
+footer{padding-block:36px 0; color:var(--ink-faint); font-size:12.5px; border-top:2px solid var(--ink); margin-top:8px}
+footer p{max-width:70ch}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 4 L0 8 Z" class="mk"/>
+    </marker>
+    <marker id="ar-ok" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 4 L0 8 Z" class="mk-ok"/>
+    </marker>
+    <marker id="ar-no" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 4 L0 8 Z" class="mk-no"/>
+    </marker>
+    <marker id="ar-msg" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0.5 0.6 L9.4 4 L0.5 7.4 Z" class="mk-msg"/>
+    </marker>
+  </defs>
+</svg>
+
+<div class="shell">
+
+<header class="mast">
+  <p class="eyebrow">Process models · architecture · 70-hour plan</p>
+  <h1>Ten questions,<br>one loop.</h1>
+  <p class="standfirst">A math practice product for children aged 5&ndash;10, modelled end to end before a line of application code is written. Three BPMN&nbsp;2.0 processes, the architecture they imply, and an honest account of what will be hard.</p>
+  <ul class="chips">
+    <li><b>NestJS</b> + Prisma</li>
+    <li><b>PostgreSQL</b> 16</li>
+    <li><b>React</b> + Vite</li>
+    <li><b>Ollama</b> phi4:14b</li>
+    <li><b>Docker</b> Compose</li>
+    <li>70 h budget</li>
+  </ul>
+</header>
+
+<div class="layout">
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#product">Product read</a></li>
+    <li><a href="#models">The three processes</a></li>
+    <li><a href="#arch">Architecture</a></li>
+    <li><a href="#data">Data model</a></li>
+    <li><a href="#api">API surface</a></li>
+    <li><a href="#tutor">The local tutor</a></li>
+    <li><a href="#adapt">Adaptive difficulty</a></li>
+    <li><a href="#ux">UX for small humans</a></li>
+    <li><a href="#risks">Risks</a></li>
+    <li><a href="#plan">70 hours</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ============ 1 ============ -->
+<section id="product">
+  <span class="sec-no">01 — Product read</span>
+  <h2>What this actually is</h2>
+  <p class="lede">The brief lists features. Features are not a product. Before choosing a database column, it is worth being precise about who sits in front of this and what a good five minutes looks like for them.</p>
+
+  <p>The user is a child between five and ten. That span is enormous. A five-year-old is pre-literate, counts on fingers, and loses interest in about four minutes. A ten-year-old reads fluently, does long division, and will notice&nbsp;&mdash; and resent&nbsp;&mdash; being patronised. Treating them as one audience produces something that fails both.</p>
+
+  <p>So the product resolves to a single repeated unit: <strong>a ten-question session, in one topic, at the child's current level for that topic.</strong> Everything else in the brief hangs off that unit. Score is a property of a session. Progress is the series of sessions. Badges are predicates over that series. The parent dashboard is a read model of it. Get the session right and the rest is reporting.</p>
+
+  <div class="decks">
+    <div class="deck">
+      <span class="tag">Decision 01</span>
+      <h4>Level lives on the topic</h4>
+      <p>Not one level per child. A child can be fluent in addition and lost in division; a single number mis-serves both. The level is a property of <code>(child, topic)</code>.</p>
+    </div>
+    <div class="deck">
+      <span class="tag">Decision 02</span>
+      <h4>Five levels, three names</h4>
+      <p>The brief asks for at least three difficulty levels. The child sees three &mdash; Easy, Medium, Hard. The engine runs five, so adaptation has somewhere to move without visibly demoting anyone.</p>
+    </div>
+    <div class="deck">
+      <span class="tag">Decision 03</span>
+      <h4>Attempts are an event log</h4>
+      <p>Every answer is appended, never updated. XP, streaks, charts and badges are all derived from that log. Nothing needs backfilling when the scoring rules change.</p>
+    </div>
+  </div>
+
+  <h3>Who signs in</h3>
+  <p>The brief asks for basic authentication. The naive reading&nbsp;&mdash; give the child a username and password&nbsp;&mdash; is wrong for a five-year-old who cannot yet spell their own surname. The security boundary is the <strong>parent account</strong>: email and password, argon2id, JWT. Child profiles live under that account, and choosing one is a tap on a picture, which mints a short-lived child-scoped token. Every child-data endpoint checks that token's subject against the row it is about to touch, so one parent's session can never read another child's attempts.</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="models">
+  <span class="sec-no">02 — Process models</span>
+  <h2>The three processes</h2>
+  <p class="lede">Three BPMN 2.0 models, hand-authored as XML with diagram interchange, sitting in <code>docs/bpmn/</code>. They are not pictures of BPMN &mdash; drop any of them on <a href="https://demo.bpmn.io">demo.bpmn.io</a> or open them in Camunda Modeler and they load as editable models.</p>
+
+  <h3>2.1 &nbsp;Onboarding</h3>
+  <p>The short one. Its only interesting feature is that both failure paths are modelled: a bad password loops back without telling the attacker whether the account exists, and an out-of-range age is caught by a boundary error event rather than being silently clamped.</p>
+
+  <figure>
+    <p class="wide-note">Scroll horizontally →</p>
+    <div class="scroll">
+      <svg viewBox="0 0 1660 312" width="1660" height="312" role="img" aria-label="BPMN model of parent onboarding across three lanes: Parent, Web App and API. Both the wrong-password path and the invalid-age path loop back rather than failing.">
+        <rect class="lane-fill" x="30" y="8" width="1620" height="74"/>
+        <rect class="lane-fill" x="30" y="156" width="1620" height="144"/>
+        <path class="lane-line" d="M30 8 H1650 M30 82 H1650 M30 156 H1650 M30 300 H1650"/>
+        <path class="pool-line" d="M30 8 V300 M1650 8 V300"/>
+        <text class="lane-label" transform="translate(19,45) rotate(-90)">PARENT</text>
+        <text class="lane-label" transform="translate(19,119) rotate(-90)">WEB APP</text>
+        <text class="lane-label" transform="translate(19,228) rotate(-90)">API</text>
+
+        <circle class="ev" cx="102" cy="45" r="15"/>
+        <text class="evl" x="102" y="74">opens the app</text>
+
+        <rect class="task" x="186" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="238" y="117"><tspan x="238">Show sign in</tspan><tspan x="238" dy="13">or register</tspan></text>
+
+        <rect class="task" x="322" y="18" width="104" height="54" rx="7"/>
+        <text class="tl" x="374" y="43"><tspan x="374">Enter email</tspan><tspan x="374" dy="13">and password</tspan></text>
+
+        <rect class="task" x="458" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="510" y="189"><tspan x="510">Verify with</tspan><tspan x="510" dy="13">argon2id</tspan></text>
+
+        <path class="gw" d="M646 172 L665 191 L646 210 L627 191 Z"/>
+        <path class="gwm" d="M641 186 L651 196 M651 186 L641 196"/>
+        <text class="gwl" x="646" y="163">Valid?</text>
+
+        <rect class="task" x="730" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="782" y="111"><tspan x="782">401 — same</tspan><tspan x="782" dy="13">message either</tspan><tspan x="782" dy="13">way</tspan></text>
+
+        <rect class="task" x="730" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="782" y="189"><tspan x="782">Issue parent</tspan><tspan x="782" dy="13">token pair</tspan></text>
+
+        <rect class="task" x="866" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="918" y="117"><tspan x="918">Show child</tspan><tspan x="918" dy="13">profile form</tspan></text>
+
+        <rect class="task" x="1002" y="18" width="104" height="54" rx="7"/>
+        <text class="tl" x="1054" y="43"><tspan x="1054">Enter name</tspan><tspan x="1054" dy="13">and age</tspan></text>
+
+        <rect class="task" x="1138" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="1190" y="189"><tspan x="1190">Validate age</tspan><tspan x="1190" dy="13">is 5–10</tspan></text>
+        <circle class="ev-bnd" cx="1190" cy="218" r="13"/>
+        <path class="ev-mark" d="M1185 224 L1188 214 L1192 220 L1195 211"/>
+        <text class="evl" x="1262" y="215">outside 5–10</text>
+
+        <rect class="task" x="1138" y="234" width="104" height="54" rx="7"/>
+        <text class="tl" x="1190" y="259"><tspan x="1190">422 with a</tspan><tspan x="1190" dy="13">kind message</tspan></text>
+
+        <rect class="task" x="1274" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="1326" y="183"><tspan x="1326">Create profile,</tspan><tspan x="1326" dy="13">seed level</tspan><tspan x="1326" dy="13">from age</tspan></text>
+
+        <rect class="task" x="1410" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="1462" y="123">Show dashboard</text>
+
+        <circle class="ev-end" cx="1598" cy="45" r="15"/>
+        <text class="evl" x="1598" y="74">ready to play</text>
+
+        <path class="fl" d="M117 45 H152 V119 H186"/>
+        <path class="fl" d="M290 119 H306 V45 H322"/>
+        <path class="fl" d="M426 45 H442 V191 H458"/>
+        <path class="fl" d="M562 191 H627"/>
+        <path class="fl-ok" d="M665 191 H730"/>
+        <text class="el el-ok" x="697" y="184">yes</text>
+        <path class="fl-no" d="M646 172 V105 H730"/>
+        <text class="el el-no" x="637" y="136" text-anchor="end">no</text>
+        <path class="fl" d="M782 92 V80 H374 V72"/>
+        <text class="el" x="578" y="75">try again</text>
+        <path class="fl" d="M834 191 H850 V119 H866"/>
+        <path class="fl" d="M970 119 H986 V45 H1002"/>
+        <path class="fl" d="M1106 45 H1122 V191 H1138"/>
+        <path class="fl" d="M1242 191 H1274"/>
+        <path class="fl" d="M1190 231 V234"/>
+        <path class="fl" d="M1138 261 H918 V146"/>
+        <text class="el" x="1028" y="255">fix the age</text>
+        <path class="fl" d="M1378 191 H1394 V119 H1410"/>
+        <path class="fl" d="M1514 119 H1548 V45 H1583"/>
+      </svg>
+    </div>
+    <figcaption><b>Onboarding.</b> The parent authenticates once; the child never types a password. The 401 message is identical whether or not the email exists, so the endpoint cannot be used to enumerate accounts.</figcaption>
+  </figure>
+
+  <h3>2.2 &nbsp;The practice session</h3>
+  <p>This is the product. Four lanes, twenty-six nodes, and three decisions you can read straight off the shape of it.</p>
+
+  <p><strong>The correct answer goes down, not out.</strong> Follow <em>Generate exercise</em> and the next hop is into PostgreSQL, not into the browser. The DTO that reaches React carries the operands and the four choices; the answer stays in the row. <em>Validate ownership</em> then re-reads it server-side. A child of six will not open devtools, but a reviewer will, and grading on the client is the kind of shortcut that costs an offer.</p>
+
+  <p><strong>A wrong answer forks.</strong> The parallel gateway is the most important symbol in this diagram. One branch returns <em>immediately</em> with a static hint; the other calls the language model in the background and swaps its explanation in when it arrives. Put the model on the critical path instead and every wrong answer becomes a three-second freeze for a child whose attention you have already lost.</p>
+
+  <p><strong>The idle timer is non-interrupting</strong>&nbsp;&mdash; the dashed boundary circle. After forty-five seconds the choices wiggle. The turn does not end, nothing is deducted, and no clock is ever shown. Response time is still recorded, because adaptation needs it, but it is never used against the child.</p>
+
+  <figure>
+    <p class="wide-note">Scroll horizontally →</p>
+    <div class="scroll">
+      <svg viewBox="0 0 2620 462" width="2620" height="462" role="img" aria-label="BPMN model of the practice session across four lanes: Child, Web App, API and PostgreSQL. The correct answer is stored in the database rather than sent to the browser; a wrong answer forks into an immediate static hint and a background AI tutor call; the idle timer is non-interrupting.">
+        <rect class="lane-fill" x="30" y="8" width="2590" height="74"/>
+        <rect class="lane-fill" x="30" y="156" width="2590" height="224"/>
+        <path class="lane-line" d="M30 8 H2620 M30 82 H2620 M30 156 H2620 M30 380 H2620 M30 454 H2620"/>
+        <path class="pool-line" d="M30 8 V454 M2620 8 V454"/>
+        <text class="lane-label" transform="translate(19,45) rotate(-90)">CHILD</text>
+        <text class="lane-label" transform="translate(19,119) rotate(-90)">WEB APP</text>
+        <text class="lane-label" transform="translate(19,268) rotate(-90)">API</text>
+        <text class="lane-label" transform="translate(19,417) rotate(-90)">POSTGRES</text>
+
+        <circle class="ev" cx="102" cy="45" r="15"/>
+        <text class="evl" x="102" y="74">picks a topic</text>
+
+        <rect class="task" x="186" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="238" y="123">Start session</text>
+
+        <rect class="task" x="322" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="374" y="185"><tspan x="374">Open session,</tspan><tspan x="374" dy="13">read level</tspan></text>
+
+        <rect class="task" x="458" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="510" y="185"><tspan x="510">Generate exercise</tspan><tspan x="510" dy="13">+ 4 choices</tspan></text>
+
+        <rect class="task" x="594" y="390" width="104" height="54" rx="7"/>
+        <text class="tl" x="646" y="411"><tspan x="646">Store exercise —</tspan><tspan x="646" dy="13">answer stays here</tspan></text>
+
+        <rect class="task" x="730" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="782" y="123">Show question</text>
+
+        <rect class="task" x="866" y="18" width="104" height="54" rx="7"/>
+        <text class="tl" x="918" y="49">Answer</text>
+        <circle class="ev-bnd" cx="892" cy="72" r="13" stroke-dasharray="3.5 2.5"/>
+        <circle class="ev-bnd" cx="892" cy="72" r="9.5" stroke-dasharray="3.5 2.5"/>
+        <circle class="ev-mark" cx="892" cy="72" r="5"/>
+        <path class="ev-mark" d="M892 68.5 V72 L894.5 73.5"/>
+        <text class="evl" x="860" y="68" text-anchor="end">idle 45s</text>
+
+        <rect class="task" x="866" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="918" y="117"><tspan x="918">Wiggle the</tspan><tspan x="918" dy="13">choices</tspan></text>
+
+        <rect class="task" x="1002" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="1054" y="185"><tspan x="1054">Validate</tspan><tspan x="1054" dy="13">ownership</tspan></text>
+        <circle class="ev-bnd" cx="1054" cy="218" r="13"/>
+        <path class="ev-mark" d="M1049 224 L1052 214 L1056 220 L1059 211"/>
+        <text class="evl" x="1074" y="215" text-anchor="start">replay</text>
+
+        <rect class="task" x="1002" y="234" width="104" height="54" rx="7"/>
+        <text class="tl" x="1054" y="255"><tspan x="1054">409 with a</tspan><tspan x="1054" dy="13">kind message</tspan></text>
+
+        <circle class="ev-end" cx="1054" cy="331" r="15"/>
+        <text class="evl" x="1054" y="360">attempt rejected</text>
+
+        <path class="gw" d="M1190 172 L1209 191 L1190 210 L1171 191 Z"/>
+        <path class="gwm" d="M1185 186 L1195 196 M1195 186 L1185 196"/>
+        <text class="gwl" x="1190" y="163">Correct?</text>
+
+        <rect class="task" x="1274" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="1326" y="195">Award XP</text>
+
+        <path class="gw" d="M1326 242 L1345 261 L1326 280 L1307 261 Z"/>
+        <path class="gwm" d="M1326 252 V270 M1317 261 H1335"/>
+        <text class="el" x="1326" y="296">answer now, explain later</text>
+
+        <rect class="task" x="1410" y="234" width="104" height="54" rx="7"/>
+        <text class="tl" x="1462" y="255"><tspan x="1462">Instant hint,</tspan><tspan x="1462" dy="13">no waiting</tspan></text>
+
+        <rect class="task-call" x="1410" y="304" width="104" height="54" rx="7"/>
+        <text class="tl" x="1462" y="335">AI Math Tutor</text>
+
+        <path class="gw" d="M1598 172 L1617 191 L1598 210 L1579 191 Z"/>
+        <path class="gwm" d="M1593 186 L1603 196 M1603 186 L1593 196"/>
+
+        <rect class="task" x="1682" y="390" width="104" height="54" rx="7"/>
+        <text class="tl" x="1734" y="421">Append attempt</text>
+
+        <rect class="task" x="1818" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="1870" y="123">Show feedback</text>
+
+        <rect class="task" x="1954" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="2006" y="117"><tspan x="2006">Swap in the</tspan><tspan x="2006" dy="13">explanation</tspan></text>
+
+        <circle class="ev-end" cx="2142" cy="119" r="15"/>
+        <text class="evl" x="2142" y="148">explanation shown</text>
+
+        <rect class="task" x="1954" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="2006" y="185"><tspan x="2006">Update streak,</tspan><tspan x="2006" dy="13">level, badges</tspan></text>
+
+        <path class="gw" d="M2142 172 L2161 191 L2142 210 L2123 191 Z"/>
+        <path class="gwm" d="M2137 186 L2147 196 M2147 186 L2137 196"/>
+        <text class="gwl" x="2142" y="163">10 done?</text>
+
+        <rect class="task" x="2226" y="164" width="104" height="54" rx="7"/>
+        <text class="tl" x="2278" y="195">Build summary</text>
+
+        <rect class="task" x="2362" y="92" width="104" height="54" rx="7"/>
+        <text class="tl" x="2414" y="123">Show results</text>
+
+        <circle class="ev-end" cx="2550" cy="45" r="15"/>
+        <text class="evl" x="2550" y="74">session complete</text>
+
+        <path class="fl" d="M117 45 H152 V119 H186"/>
+        <path class="fl" d="M290 119 H306 V191 H322"/>
+        <path class="fl" d="M426 191 H458"/>
+        <path class="fl" d="M562 191 H578 V417 H594"/>
+        <path class="fl" d="M698 417 H714 V119 H730"/>
+        <path class="fl" d="M834 119 H850 V45 H866"/>
+        <path class="fl" d="M892 85 V92"/>
+        <path class="fl" d="M944 92 V72"/>
+        <path class="fl" d="M970 45 H986 V191 H1002"/>
+        <path class="fl" d="M1054 231 V234"/>
+        <path class="fl" d="M1054 288 V316"/>
+        <path class="fl" d="M1106 191 H1171"/>
+        <path class="fl-ok" d="M1209 191 H1274"/>
+        <text class="el el-ok" x="1241" y="184">yes</text>
+        <path class="fl-no" d="M1190 210 V261 H1307"/>
+        <text class="el el-no" x="1180" y="240" text-anchor="end">no</text>
+        <path class="fl-no" d="M1345 261 H1410"/>
+        <path class="fl-no" d="M1326 280 V331 H1410"/>
+        <path class="fl" d="M1378 191 H1579"/>
+        <path class="fl" d="M1514 261 H1598 V210"/>
+        <path class="fl" d="M1617 191 H1640 V417 H1682"/>
+        <path class="fl" d="M1786 417 H1802 V119 H1818"/>
+        <path class="fl-no" d="M1514 331 H1936 V119 H1954"/>
+        <text class="el el-no" x="1700" y="324">hint ready, swap it in</text>
+        <path class="fl" d="M2058 119 H2127"/>
+        <path class="fl" d="M1870 146 V191 H1954"/>
+        <path class="fl" d="M2058 191 H2123"/>
+        <path class="fl" d="M2142 210 V368 H440 V191 H458"/>
+        <text class="el" x="1290" y="362">no — next question, level may have shifted</text>
+        <path class="fl-ok" d="M2161 191 H2226"/>
+        <text class="el el-ok" x="2193" y="184">yes</text>
+        <path class="fl" d="M2330 191 H2346 V119 H2362"/>
+        <path class="fl" d="M2466 119 H2510 V45 H2535"/>
+      </svg>
+    </div>
+    <figcaption><b>The practice session.</b> Green marks the correct-answer path, red the wrong-answer path. The <b>+</b> gateway is the fork that keeps the model off the critical path: <em>Instant hint</em> returns at once, <em>AI Math Tutor</em> runs in the background, and its explanation replaces the static one when it lands. The loop-back at the bottom is the next question &mdash; the level may have changed on the way round.</figcaption>
+  </figure>
+
+  <h3>2.3 &nbsp;The AI tutor</h3>
+  <p>The brief says that if AI is used, its responses must be checked. This model is that requirement drawn out in full. Note what it does <em>not</em> contain: a path where a model failure reaches the child. Every branch converges on <em>Deliver hint</em>, and four of the five ways through end at the static template.</p>
+
+  <figure>
+    <p class="wide-note">Scroll horizontally →</p>
+    <div class="scroll">
+      <svg viewBox="0 0 1700 320" width="1700" height="320" role="img" aria-label="BPMN model of the AI tutor. A cache hit skips the model entirely. Otherwise Ollama is called with a timeout and error boundary; the reply is parsed, schema-checked and safety-checked, and any failure falls through to a static hint template. Every path ends with a hint delivered.">
+        <rect class="lane-fill" x="30" y="8" width="1650" height="204" rx="4"/>
+        <path class="pool-line" d="M30 8 H1680 V212 H30 Z"/>
+        <text class="lane-label" transform="translate(19,110) rotate(-90)">API · TUTOR MODULE</text>
+
+        <rect class="arch-ext" x="30" y="250" width="1650" height="52" rx="4"/>
+        <text class="at" x="855" y="272">Ollama — local model on the host machine</text>
+        <text class="as" x="855" y="288">no API key · no network egress · phi4:14b</text>
+
+        <circle class="ev" cx="102" cy="75" r="15"/>
+        <text class="evl" x="102" y="104">wrong answer</text>
+
+        <rect class="task" x="186" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="238" y="69"><tspan x="238">Build prompt</tspan><tspan x="238" dy="13">from the row</tspan></text>
+
+        <rect class="task" x="322" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="374" y="69"><tspan x="374">Check hint</tspan><tspan x="374" dy="13">cache</tspan></text>
+
+        <path class="gw" d="M510 56 L529 75 L510 94 L491 75 Z"/>
+        <path class="gwm" d="M505 70 L515 80 M515 70 L505 80"/>
+        <text class="gwl" x="510" y="47">Cached?</text>
+
+        <rect class="task" x="594" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="646" y="63"><tspan x="646">Call Ollama</tspan><tspan x="646" dy="13">JSON schema</tspan><tspan x="646" dy="13">8s timeout</tspan></text>
+        <circle class="ev-bnd" cx="624" cy="102" r="13"/>
+        <circle class="ev-mark" cx="624" cy="102" r="6.5"/>
+        <path class="ev-mark" d="M624 97.5 V102 L627 104"/>
+        <text class="evl" x="604" y="124" text-anchor="end">8s</text>
+        <circle class="ev-bnd" cx="668" cy="102" r="13"/>
+        <path class="ev-mark" d="M663 108 L666 98 L670 104 L673 95"/>
+        <text class="evl" x="690" y="124" text-anchor="start">unreachable</text>
+
+        <rect class="task" x="730" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="782" y="69"><tspan x="782">Parse, strip</tspan><tspan x="782" dy="13">any think block</tspan></text>
+
+        <path class="gw" d="M918 56 L937 75 L918 94 L899 75 Z"/>
+        <path class="gwm" d="M913 70 L923 80 M923 70 L913 80"/>
+        <text class="gwl" x="918" y="47">Shape valid?</text>
+
+        <rect class="task" x="1002" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="1054" y="69"><tspan x="1054">Safety gate</tspan><tspan x="1054" dy="13">7 checks</tspan></text>
+
+        <path class="gw" d="M1190 56 L1209 75 L1190 94 L1171 75 Z"/>
+        <path class="gwm" d="M1185 70 L1195 80 M1195 70 L1185 80"/>
+        <text class="gwl" x="1190" y="47">All pass?</text>
+
+        <rect class="task" x="1002" y="128" width="104" height="54" rx="7"/>
+        <text class="tl" x="1054" y="149"><tspan x="1054">Static hint</tspan><tspan x="1054" dy="13">template</tspan></text>
+
+        <rect class="task" x="1274" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="1326" y="69"><tspan x="1326">Cache it</tspan><tspan x="1326" dy="13">for 24h</tspan></text>
+
+        <rect class="task" x="1410" y="48" width="104" height="54" rx="7"/>
+        <text class="tl" x="1462" y="79">Deliver hint</text>
+
+        <circle class="ev-end" cx="1598" cy="75" r="15"/>
+        <text class="evl" x="1598" y="104">hint delivered</text>
+
+        <path class="fl" d="M117 75 H186"/>
+        <path class="fl" d="M290 75 H322"/>
+        <path class="fl" d="M426 75 H491"/>
+        <path class="fl" d="M529 75 H594"/>
+        <text class="el" x="561" y="68">miss</text>
+        <path class="fl-ok" d="M510 56 V26 H1462 V48"/>
+        <text class="el el-ok" x="980" y="20">hit — no model call, no wait</text>
+        <path class="fl" d="M698 75 H730"/>
+        <path class="fl-no" d="M624 115 V168 H1002"/>
+        <path class="fl-no" d="M668 115 V143 H1002"/>
+        <path class="fl" d="M834 75 H899"/>
+        <path class="fl-ok" d="M937 75 H1002"/>
+        <text class="el el-ok" x="969" y="68">yes</text>
+        <path class="fl-no" d="M918 94 V112 H1054 V128"/>
+        <text class="el el-no" x="928" y="108" text-anchor="start">no</text>
+        <path class="fl" d="M1106 75 H1171"/>
+        <path class="fl-ok" d="M1209 75 H1274"/>
+        <text class="el el-ok" x="1241" y="68">yes</text>
+        <path class="fl-no" d="M1190 94 V155 H1106"/>
+        <text class="el el-no" x="1148" y="149">discard</text>
+        <path class="fl" d="M1378 75 H1410"/>
+        <path class="fl" d="M1054 182 V196 H1462 V102"/>
+        <text class="el" x="1250" y="191">never cached</text>
+        <path class="fl" d="M1514 75 H1583"/>
+
+        <path class="fl-msg" d="M594 88 H570 V250"/>
+        <text class="el" x="530" y="180" text-anchor="end">POST /api/chat</text>
+        <path class="fl-msg" d="M810 250 V102"/>
+        <text class="el" x="830" y="232" text-anchor="start">JSON reply</text>
+      </svg>
+    </div>
+    <figcaption><b>The AI tutor.</b> Five ways through, one exit. A cache hit never touches the model. A timeout, an unreachable daemon, a malformed shape or a failed safety check all land on the same static template &mdash; and that template output is deliberately never cached, so a transient failure cannot poison the cache for twenty-four hours.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="arch">
+  <span class="sec-no">03 — Architecture</span>
+  <h2>Four boxes and one that is deliberately outside</h2>
+
+  <p>Two deployable services, one database, and a model daemon that is <em>not</em> part of the deployable unit. That last point is the only genuinely interesting thing about this topology, and it is worth being explicit about why.</p>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 980 330" width="980" height="330" role="img" aria-label="Architecture map. The browser loads the app from an nginx container and calls the NestJS API directly. The API talks to Postgres inside the Compose network, and reaches Ollama on the host via host.docker.internal, outside the Compose boundary.">
+        <rect class="arch-bound" x="210" y="24" width="490" height="252" rx="10"/>
+        <text class="as" x="322" y="44" text-anchor="start">docker compose — one command</text>
+
+        <rect class="arch-box" x="20" y="110" width="150" height="76" rx="8"/>
+        <text class="at" x="95" y="142">Child's browser</text>
+        <text class="as" x="95" y="160">React + Vite</text>
+
+        <rect class="arch-box" x="240" y="64" width="170" height="64" rx="8"/>
+        <text class="at" x="325" y="92">web</text>
+        <text class="as" x="325" y="110">nginx · static build</text>
+
+        <rect class="arch-box" x="240" y="174" width="170" height="64" rx="8"/>
+        <text class="at" x="325" y="202">api</text>
+        <text class="as" x="325" y="220">NestJS · Prisma</text>
+
+        <rect class="arch-box" x="480" y="174" width="170" height="64" rx="8"/>
+        <text class="at" x="565" y="202">db</text>
+        <text class="as" x="565" y="220">PostgreSQL 16</text>
+
+        <rect class="arch-ext" x="760" y="174" width="200" height="64" rx="8"/>
+        <text class="at" x="860" y="202">Ollama</text>
+        <text class="as" x="860" y="220">phi4:14b · :11434</text>
+        <text class="as" x="860" y="150">host process — 9 GB of</text>
+        <text class="as" x="860" y="164">weights, never in an image</text>
+
+        <path class="fl" d="M170 130 H205 V96 H240"/>
+        <text class="el" x="203" y="88" text-anchor="start">loads the app</text>
+        <path class="fl" d="M170 166 H205 V206 H240"/>
+        <text class="el" x="126" y="182" text-anchor="start">JSON /api/v1</text>
+        <path class="fl" d="M410 206 H480"/>
+        <text class="el" x="445" y="199">SQL</text>
+        <path class="fl" d="M325 238 V292 H860 V238"/>
+        <text class="el" x="592" y="286">http://host.docker.internal:11434 — optional, degrades to static hints</text>
+      </svg>
+    </div>
+    <figcaption><b>The topology.</b> Everything inside the dashed boundary comes up with one command. Ollama sits outside it on purpose, and the arrow that reaches it is the only one in this diagram the product can survive losing.</figcaption>
+  </figure>
+
+  <h3>Why Ollama is outside the Compose network</h3>
+  <p>The obvious move is to add an <code>ollama/ollama</code> service to <code>compose.yaml</code> and call it done. It is the wrong move here. Model weights are gigabytes &mdash; the recommended <code>phi4:14b</code> is 9.1&nbsp;GB &mdash; and baking them into an image or pulling them on first boot turns <code>docker compose up</code> from a thirty-second operation into a long download on a machine that may not have the disk for it. Worse, it makes the reviewer's first experience of the project a progress bar.</p>
+  <p>So the API reaches the host daemon over <code>host.docker.internal</code>, and treats it as an optional dependency. <code>TUTOR_ENABLED=false</code> yields a complete, fully working product with static hints. That is not a compromise smuggled in &mdash; it is the same fallback path the tutor model already routes to on timeout, exercised by default.</p>
+
+  <div class="note warn">
+    <span class="note-h">On Linux hosts</span>
+    <p><code>host.docker.internal</code> does not resolve by default. The API service needs <code>extra_hosts: ["host.docker.internal:host-gateway"]</code> in <code>compose.yaml</code>, and Ollama must be bound to <code>0.0.0.0</code> via <code>OLLAMA_HOST</code> rather than loopback. Both belong in the README, because a reviewer on Linux hitting a silent connection refusal will read it as a broken project.</p>
+  </div>
+
+  <h3>Module boundaries in the API</h3>
+  <p>NestJS modules map one-to-one onto the nouns in the process models, which is the point of having drawn them first:</p>
+  <pre><span class="c">src/</span>
+  modules/
+    auth/        <span class="c">// argon2id, JWT pair, child-scoped tokens, guards</span>
+    children/    <span class="c">// profiles, per-topic levels</span>
+    exercises/   <span class="c">// the generator — pure, deterministic under a seed</span>
+    sessions/    <span class="c">// open, serve next, finish, summarise</span>
+    attempts/    <span class="c">// submit, grade, append to the log</span>
+    progress/    <span class="c">// XP, streaks, badges, chart series — all derived</span>
+    tutor/       <span class="c">// ollama client, safety gate, cache, fallback</span>
+  common/
+    filters/     <span class="c">// one exception filter, one error envelope</span>
+    pipes/       <span class="c">// DTO validation</span>
+prisma/
+  schema.prisma
+  seed.ts        <span class="c">// demo parent + two children with real history</span></pre>
+
+  <p>The exercise generator is deliberately a pure function of <code>(topic, level, seed)</code>. That makes it unit-testable without a database, and it means a failing case from a real session can be reproduced exactly from the seed stored on the exercise row.</p>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="data">
+  <span class="sec-no">04 — Data model</span>
+  <h2>Nine tables</h2>
+  <p class="lede">The shape follows from one commitment: attempts are facts, everything else is either configuration or a projection of those facts.</p>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Table</th><th>Holds</th><th>Worth noting</th></tr></thead>
+      <tbody>
+        <tr><td class="m">parents</td><td>email, password_hash, created_at</td><td>The only credential in the system. argon2id.</td></tr>
+        <tr><td class="m">children</td><td>parent_id, name, age, avatar, xp_total</td><td><code>xp_total</code> is a cached projection, rebuildable from attempts.</td></tr>
+        <tr><td class="m">child_topic_levels</td><td>child_id, topic, level, attempts_at_level</td><td>The adaptive state. One row per child per topic.</td></tr>
+        <tr><td class="m">sessions</td><td>child_id, topic, started_at, ended_at, target_count</td><td>Open sessions are resumable; an abandoned one just never gets an end.</td></tr>
+        <tr><td class="m">exercises</td><td>session_id, operator, a, b, correct_answer, choices, level, seed</td><td><strong>correct_answer is never serialised to the client.</strong> <code>seed</code> makes any exercise reproducible.</td></tr>
+        <tr><td class="m">attempts</td><td>exercise_id, child_id, submitted, is_correct, response_ms, hint_shown</td><td>Append-only. The source of truth for every number in the product.</td></tr>
+        <tr><td class="m">badges</td><td>code, name, description, rule</td><td>Seeded reference data, not user rows.</td></tr>
+        <tr><td class="m">child_badges</td><td>child_id, badge_id, awarded_at</td><td>Unique on the pair &mdash; a badge is earned once.</td></tr>
+        <tr><td class="m">tutor_hints</td><td>cache_key, topic, a, b, age_band, hint, model, created_at</td><td>Unique on <code>cache_key</code>. Fallback output is never written here.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="note-h">The one that matters in an interview</span>
+    <p>If a reviewer asks a single database question, it will be about <code>exercises.correct_answer</code>. The answer: the exercise is generated and persisted server-side before the question is rendered, the response DTO omits the column, and <code>POST /attempts</code> grades by re-reading the row. The client is never told the answer and is never trusted to grade. Everything else in this schema is ordinary; this is the part with a decision in it.</p>
+  </div>
+
+  <h3>Derived, not stored</h3>
+  <p>Accuracy, current streak, XP by day, per-topic mastery and the parent dashboard's charts are all queries over <code>attempts</code>. Only <code>children.xp_total</code> and <code>child_topic_levels.level</code> are cached, because they are read on every single request in the session loop. Both can be rebuilt from the log, and a <code>recompute</code> command that does so is worth the forty minutes &mdash; it turns a scoring bug from a data migration into a rerun.</p>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="api">
+  <span class="sec-no">05 — API surface</span>
+  <h2>Fifteen endpoints</h2>
+  <p class="lede">Every route in the brief, plus the two health checks that make the Ollama dependency debuggable instead of mysterious.</p>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Does</th><th>Auth</th></tr></thead>
+      <tbody>
+        <tr><td><span class="verb">POST</span></td><td class="m">/auth/register</td><td>Create a parent account</td><td>—</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/auth/login</td><td>Access + refresh pair</td><td>—</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/auth/refresh</td><td>Rotate the pair</td><td>refresh</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/children</td><td>Profiles under this parent</td><td>parent</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/children</td><td>Create a profile, seed levels from age</td><td>parent</td></tr>
+        <tr><td><span class="verb">PATCH</span></td><td class="m">/children/:id</td><td>Rename, change avatar</td><td>parent</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/children/:id/token</td><td>Mint a child-scoped token</td><td>parent</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/topics</td><td>Topics with this child's level in each</td><td>child</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/sessions</td><td>Open a session, return the first exercise</td><td>child</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/sessions/:id/next</td><td>Next exercise, level re-evaluated</td><td>child</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/attempts</td><td>Grade, score, return feedback + hint ticket</td><td>child</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/hints/:id</td><td>Poll for the tutor explanation</td><td>child</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/sessions/:id/finish</td><td>Close, summarise, award badges</td><td>child</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/children/:id/progress</td><td>Totals, streak, per-topic mastery</td><td>parent&nbsp;|&nbsp;child</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/health</td><td>Process + database</td><td>—</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/health/llm</td><td>Ollama reachable, model loaded, last latency</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The response to a wrong answer</h3>
+  <p>This is the shape that makes the fork in the process model real. <code>POST /attempts</code> returns in single-digit milliseconds and never waits for the model:</p>
+  <pre>{
+  <span class="k">"correct"</span>: <span class="k">false</span>,
+  <span class="k">"correctAnswer"</span>: <span class="s">12</span>,          <span class="c">// safe now — the attempt is recorded</span>
+  <span class="k">"xpEarned"</span>: <span class="s">0</span>,
+  <span class="k">"hint"</span>: {
+    <span class="k">"text"</span>: <span class="s">"Try counting up from 7 on your fingers."</span>,
+    <span class="k">"source"</span>: <span class="s">"static"</span>,     <span class="c">// shown immediately</span>
+    <span class="k">"ticket"</span>: <span class="s">"h_9f2c…"</span>      <span class="c">// null when TUTOR_ENABLED=false</span>
+  },
+  <span class="k">"progress"</span>: { <span class="k">"answered"</span>: <span class="s">4</span>, <span class="k">"of"</span>: <span class="s">10</span>, <span class="k">"correct"</span>: <span class="s">3</span> }
+}</pre>
+  <p>The client shows <code>hint.text</code> at once. If <code>ticket</code> is present it polls <code>/hints/:id</code> twice at 1.5&nbsp;s and then gives up, keeping the static hint. No websockets, no queue, no extra infrastructure for what is a two-request interaction.</p>
+
+  <h3>Error envelope</h3>
+  <p>One exception filter, one shape, and one field that most APIs do not have:</p>
+  <pre>{
+  <span class="k">"error"</span>: {
+    <span class="k">"code"</span>: <span class="s">"EXERCISE_ALREADY_ANSWERED"</span>,
+    <span class="k">"message"</span>: <span class="s">"Attempt rejected: exercise 84 already has an attempt."</span>,
+    <span class="k">"kidMessage"</span>: <span class="s">"You already answered that one! Here comes the next."</span>
+  }
+}</pre>
+  <p><code>message</code> is for the developer and the logs. <code>kidMessage</code> is what the interface is allowed to render. Without that split, either the child sees a stack-trace-flavoured string or the logs lose the detail &mdash; and a child hitting a 500 is a product failure whatever the cause was.</p>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="tutor">
+  <span class="sec-no">06 — The local tutor</span>
+  <h2>Trusting nothing the model says</h2>
+  <p class="lede">Running locally removes the key-leak problem the brief warns about &mdash; there is no key. It does not remove the harder problem, which is that a 14-billion-parameter model will, given enough attempts, confidently tell a seven-year-old that 8&nbsp;&minus;&nbsp;3 is 6.</p>
+
+  <h3>Choosing the model</h3>
+  <p>Fourteen models are pulled on this machine. Five are <code>:cloud</code> tagged &mdash; <code>gpt-oss:120b-cloud</code>, <code>kimi-k3:cloud</code> and friends &mdash; which route to ollama.com. Using one of those would quietly reintroduce an external dependency and an account, and destroy the "no key, no egress" claim. They are excluded on principle, not on capability.</p>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Model</th><th class="num">Size</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="m">phi4:14b</td><td class="num">9.1 GB</td><td><strong>Default.</strong> Phi-4 was trained heavily on mathematical reasoning and holds a two-sentence instruction. The best accuracy-per-second here.</td></tr>
+        <tr><td class="m">qwen2.5-coder:7b</td><td class="num">4.7 GB</td><td>Fallback for weaker hardware. Code-tuned, so its prose is stiffer, but it is fast and obeys a JSON schema.</td></tr>
+        <tr><td class="m">qwen3.6:35b-a3b</td><td class="num">22 GB</td><td>Mixture-of-experts, ~3 B active, so quicker than the size suggests &mdash; but it emits reasoning that must be stripped. Needs <code>think: false</code>.</td></tr>
+        <tr><td class="m">mistral-small:22b</td><td class="num">12 GB</td><td>Warmest natural language of the set. Noticeably slower. A reasonable swap if hint quality disappoints.</td></tr>
+        <tr><td class="m">nexus1:1b</td><td class="num">1.3 GB</td><td>Too small to hold the constraint reliably. Useful only as a latency floor in testing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Shape is constrained, meaning is checked</h3>
+  <p>Ollama supports passing a JSON Schema as <code>format</code>, which constrains decoding &mdash; the model <em>cannot</em> emit a response that violates the shape. That removes parse failures as a class, and lets the verification layer spend its effort on semantics instead of brackets:</p>
+  <pre>{
+  <span class="k">"type"</span>: <span class="s">"object"</span>,
+  <span class="k">"properties"</span>: {
+    <span class="k">"hint"</span>:      { <span class="k">"type"</span>: <span class="s">"string"</span>, <span class="k">"maxLength"</span>: 180 },
+    <span class="k">"strategy"</span>:  { <span class="k">"type"</span>: <span class="s">"string"</span>, <span class="k">"enum"</span>:
+                   [<span class="s">"count_on"</span>, <span class="s">"number_line"</span>, <span class="s">"break_apart"</span>,
+                    <span class="s">"repeated_addition"</span>, <span class="s">"inverse"</span>, <span class="s">"group_share"</span>] },
+    <span class="k">"encouragement"</span>: { <span class="k">"type"</span>: <span class="s">"string"</span>, <span class="k">"maxLength"</span>: 60 }
+  },
+  <span class="k">"required"</span>: [<span class="s">"hint"</span>, <span class="s">"strategy"</span>, <span class="s">"encouragement"</span>]
+}</pre>
+
+  <h4>The seven checks</h4>
+  <ol>
+    <li><strong>Strip reasoning.</strong> Remove any <code>&lt;think&gt;</code> block before anything else looks at the text. Reasoning models leak it; qwen3.6 certainly does.</li>
+    <li><strong>Re-validate the schema</strong> with Zod anyway. Constrained decoding is the daemon's promise, not the API's guarantee.</li>
+    <li><strong>Answer-leak.</strong> The correct answer must not appear as a standalone number in <code>hint</code>. A hint that gives away the answer is not a hint.</li>
+    <li><strong>Numeric sanity.</strong> Every number in the hint must be one of <code>a</code>, <code>b</code>, or a counting number ≤&nbsp;12. This is the check that catches the real failure mode &mdash; a small model inventing arithmetic mid-explanation.</li>
+    <li><strong>Length.</strong> Two sentences, 180 characters. Enforced, not requested.</li>
+    <li><strong>Vocabulary.</strong> Word length and a banned-list check against an age band. "Subtrahend" fails for a six-year-old.</li>
+    <li><strong>Shape of the text.</strong> No URLs, no markdown, no code fences, no second language.</li>
+  </ol>
+  <p>Any failure discards the output, logs it raw for inspection, and returns the static template. The failure rate is a number worth putting in the README &mdash; it is evidence the verification is real rather than decorative.</p>
+
+  <h3>Configuration</h3>
+  <pre><span class="c"># .env.example — committed. .env is not.</span>
+DATABASE_URL=postgresql://mathkids:mathkids@db:5432/mathkids
+JWT_SECRET=change-me
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=7d
+
+<span class="c"># AI tutor — entirely optional</span>
+TUTOR_ENABLED=true
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=phi4:14b
+OLLAMA_TIMEOUT_MS=8000
+OLLAMA_KEEP_ALIVE=30m        <span class="c"># or the first hint after idle takes 20s</span>
+OLLAMA_TEMPERATURE=0.3
+OLLAMA_NUM_PREDICT=120
+TUTOR_CACHE_TTL_HOURS=24</pre>
+
+  <div class="note warn">
+    <span class="note-h">Cold start is the bug you will hit first</span>
+    <p>Ollama unloads a model after five minutes idle. The next request then pays the full load &mdash; twenty seconds or more for 9&nbsp;GB. During a demo that reads as a hang. <code>keep_alive: "30m"</code> plus a warm-up call on API boot turns it into a one-time cost at startup, where nobody is watching.</p>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="adapt">
+  <span class="sec-no">07 — Adaptive difficulty</span>
+  <h2>Five levels, and a rule that will not thrash</h2>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th class="num">Lvl</th><th>Shown as</th><th>Age</th><th>Addition</th><th>Subtraction</th><th>Multiplication</th><th>Division</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Easy</td><td class="m">5–6</td><td class="m">a+b ≤ 10</td><td class="m">a−b, a ≤ 10</td><td>—</td><td>—</td></tr>
+        <tr><td class="num">2</td><td>Easy</td><td class="m">6–7</td><td class="m">a+b ≤ 20</td><td class="m">a−b ≤ 20</td><td class="m">×1 ×2 ×5 ×10</td><td class="m">÷2 ÷5 ÷10 exact</td></tr>
+        <tr><td class="num">3</td><td>Medium</td><td class="m">7–8</td><td class="m">≤ 100, carrying</td><td class="m">≤ 100, borrowing</td><td class="m">to 5×5</td><td class="m">exact, to 25</td></tr>
+        <tr><td class="num">4</td><td>Hard</td><td class="m">8–9</td><td class="m">≤ 1000</td><td class="m">≤ 1000</td><td class="m">to 10×10</td><td class="m">exact, to 100</td></tr>
+        <tr><td class="num">5</td><td>Hard</td><td class="m">9–10</td><td class="m">3-digit, two-step</td><td class="m">3-digit, two-step</td><td class="m">2-digit × 1-digit</td><td class="m">with remainder</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The child sees three tiers because the brief asks for three and because a child who is told they have been moved from level 4 to level 3 has been told they are worse than they were yesterday. The engine keeps five so it can adjust without that ever being visible.</p>
+
+  <pre><span class="c">// evaluated after every attempt, per (child, topic)</span>
+<span class="k">const</span> window = lastAttempts(childId, topic, <span class="s">5</span>);
+<span class="k">const</span> accuracy = window.filter(a =&gt; a.isCorrect).length / window.length;
+
+<span class="k">if</span> (window.length &lt; <span class="s">5</span> || attemptsAtLevel &lt; <span class="s">5</span>) <span class="k">return</span> level;   <span class="c">// not enough signal</span>
+<span class="k">if</span> (accuracy &gt;= <span class="s">0.8</span>) <span class="k">return</span> min(level + <span class="s">1</span>, <span class="s">5</span>);
+<span class="k">if</span> (accuracy &lt;= <span class="s">0.4</span>) <span class="k">return</span> max(level - <span class="s">1</span>, <span class="s">1</span>);
+<span class="k">return</span> level;</pre>
+
+  <p>The <code>attemptsAtLevel &lt; 5</code> guard is what stops oscillation. Without it, a child at the boundary bounces between two levels every other question, and the questions stop feeling coherent. Response time is recorded and available to the rule, but is deliberately not used for promotion &mdash; a child who reads slowly is not a child who has failed to learn subtraction.</p>
+
+  <h3>Distractors are pedagogy, not noise</h3>
+  <p>Three wrong choices per question, and they are chosen, not randomised. For <code>7 + 5</code> the distractors are <strong>11</strong> (off by one, a counting slip), <strong>2</strong> (the subtraction result &mdash; wrong operation), and <strong>13</strong> (off by one the other way). Each wrong answer therefore identifies a specific misconception, which is what makes the tutor hint targetable: the model is told which distractor was chosen, and can address <em>that</em> error rather than re-explaining addition from scratch. A random number between 1 and 20 would be eliminated on sight and teach nobody anything.</p>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="ux">
+  <span class="sec-no">08 — UX for small humans</span>
+  <h2>Nine rules, each with a reason</h2>
+
+  <ol>
+    <li><strong>No visible timer, ever.</strong> Response time is recorded for adaptivity and never shown. A countdown converts a game into a test, and five-year-olds fail tests by freezing.</li>
+    <li><strong>Near-zero reading load below age seven.</strong> The question is <code>7 + 5 = ?</code> in very large glyphs. The instruction is an icon and optional audio, never a sentence. A child who cannot read the interface cannot use the product, however good the math engine is.</li>
+    <li><strong>Four choices, 64&nbsp;px minimum targets</strong>, widely spaced. Small hands mis-tap, and a mis-tap recorded as a wrong answer corrupts the adaptivity data as well as the child's mood.</li>
+    <li><strong>Wrong is quiet.</strong> The chosen tile settles back, the correct one lights up, the hint appears underneath. No red flash, no X, no buzzer. The product's job at that moment is to keep the child in the session.</li>
+    <li><strong>Distractors that mean something</strong> &mdash; see the previous section. This is a UX decision as much as a pedagogical one.</li>
+    <li><strong>Progress is ten dots, not a percentage.</strong> Under-eights do not read percentages. They can see four dots filled and six empty.</li>
+    <li><strong>Every session ends on something that improved.</strong> The summary is built to find a true positive &mdash; a faster answer, a first correct division, a longer streak &mdash; because a screen that only reports 3/10 teaches a child that they are bad at math.</li>
+    <li><strong>One decision per screen.</strong> Pick a child. Pick a topic. Answer. Never two at once.</li>
+    <li><strong>Read the question aloud</strong> via the Web Speech API. Browser-native, no backend cost, no model call &mdash; and it satisfies the voice-based questions bonus for roughly an hour of work while genuinely serving the youngest users.</li>
+  </ol>
+
+  <div class="note">
+    <span class="note-h">The test to apply</span>
+    <p>Sit a real five-year-old in front of it without explaining anything. Every place an adult has to intervene is a bug, and the brief grades exactly this &mdash; <em>bolalar uchun UX'ni mustaqil o'ylash</em>. Rules 2, 4 and 6 above all come from watching this go wrong in practice.</p>
+  </div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="risks">
+  <span class="sec-no">09 — Risks</span>
+  <h2>What will actually go wrong</h2>
+
+  <div class="risk">
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-hi">High</span>No public demo URL</b><span>Compose-only was the chosen deployment. The brief marks a deployed URL as <em>iloji bo'lsa</em> &mdash; optional &mdash; but a reviewer comparing candidates will open someone else's link and not yours.</span></div>
+      <div class="risk-fix"><span>Record a 90-second screen capture of a real session including a wrong answer and the tutor hint. Commit it, link it at the top of the README. Roughly 30 minutes for most of the benefit. Keep the Dockerfiles deploy-ready so Railway remains a one-hour option if time allows.</span></div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-hi">High</span>Reviewer has no Ollama</b><span>Most reviewers will not have a 9&nbsp;GB model pulled. If the app errors, hangs, or shows a broken hint panel, they conclude the AI integration does not work.</span></div>
+      <div class="risk-fix"><span>Already handled structurally: the fallback path in the tutor model is the default when the daemon is unreachable. Add <code>GET /health/llm</code>, a one-line banner in the parent view rather than the child view, and a README section stating plainly that the product is complete without Ollama.</span></div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-md">Medium</span>The model invents arithmetic</b><span>A 14 B model explaining subtraction to a seven-year-old will eventually produce a confidently wrong number. Teaching a child wrong math is worse than showing no hint at all.</span></div>
+      <div class="risk-fix"><span>Check 4 of the safety gate &mdash; every number in the hint must be <code>a</code>, <code>b</code>, or a counting number ≤&nbsp;12. Cheap, deterministic, and it catches the case that matters. Log every rejection and report the rate.</span></div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-md">Medium</span>Cold-start latency reads as a hang</b><span>First hint after five idle minutes takes 20&nbsp;s+ while the model loads. Demos idle by definition.</span></div>
+      <div class="risk-fix"><span><code>keep_alive: 30m</code> plus a warm-up call on API boot. The fork in the session model means even a cold call costs the child nothing &mdash; the static hint is already on screen.</span></div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-md">Medium</span>70 hours is tight</b><span>Core requirements plus six bonuses plus tests plus Docker plus documentation. The usual failure is 90% of everything and a working demo of nothing.</span></div>
+      <div class="risk-fix"><span>Phases 1&ndash;5 are the contract and are non-negotiable. Phases 6&ndash;8 are ranked so the cut line is decided in advance rather than at 3&nbsp;a.m.: badges and streaks before the parent dashboard, parent dashboard before progress charts.</span></div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-lo">Low</span>Git history reads as one dump</b><span>The brief grades <em>bosqichma-bosqich ishlanganmi</em> explicitly. Four commits over 70 hours is a bad signal regardless of code quality.</span></div>
+      <div class="risk-fix"><span>Commit at each phase boundary and at each meaningful unit inside it &mdash; roughly 45 commits. This design phase is already commit one, before any application code exists.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="plan">
+  <span class="sec-no">10 — The plan</span>
+  <h2>Seventy hours</h2>
+  <p class="lede">Ordered so that a working, demonstrable product exists at the end of phase 5 &mdash; at 44 hours, with 26 to spare. Everything after that is additive, and can be cut without leaving a hole.</p>
+
+  <div class="phases">
+    <div class="phase"><div class="ph-n">00</div><div class="ph-t">Design</div><div class="ph-d">BPMN models, schema, API contract, repo skeleton. <em>Done.</em></div><div class="ph-h">3 h</div><div class="ph-bar"><i style="width:4.3%"></i></div></div>
+    <div class="phase"><div class="ph-n">01</div><div class="ph-t">Skeleton</div><div class="ph-d">Nest + Prisma + Postgres under Compose, health endpoint, migrations, seed script.</div><div class="ph-h">5 h</div><div class="ph-bar"><i style="width:7.1%"></i></div></div>
+    <div class="phase"><div class="ph-n">02</div><div class="ph-t">Auth</div><div class="ph-d">Parent register and login, argon2id, JWT pair, child-scoped tokens, guards, the IDOR test.</div><div class="ph-h">6 h</div><div class="ph-bar"><i style="width:8.6%"></i></div></div>
+    <div class="phase"><div class="ph-n">03</div><div class="ph-t">Domain</div><div class="ph-d">Children, topics, the exercise generator with its distractor logic, the five levels.</div><div class="ph-h">8 h</div><div class="ph-bar"><i style="width:11.4%"></i></div></div>
+    <div class="phase"><div class="ph-n">04</div><div class="ph-t">Session loop</div><div class="ph-d">Sessions, attempts, grading, XP, the adaptive rule. The whole of process model 2, server side.</div><div class="ph-h">10 h</div><div class="ph-bar"><i style="width:14.3%"></i></div></div>
+    <div class="phase"><div class="ph-n">05</div><div class="ph-t">Frontend core</div><div class="ph-d">Shell, profile picker, topic picker, play screen, feedback, results. <strong>Working product from here.</strong></div><div class="ph-h">12 h</div><div class="ph-bar"><i style="width:17.1%"></i></div></div>
+    <div class="phase"><div class="ph-n">06</div><div class="ph-t">Gamification</div><div class="ph-d">Streaks, badges, daily challenge, progress charts.</div><div class="ph-h">7 h</div><div class="ph-bar"><i style="width:10%"></i></div></div>
+    <div class="phase"><div class="ph-n">07</div><div class="ph-t">AI tutor</div><div class="ph-d">Ollama client, JSON schema, the seven checks, cache, fallback, <code>/health/llm</code>.</div><div class="ph-h">7 h</div><div class="ph-bar"><i style="width:10%"></i></div></div>
+    <div class="phase"><div class="ph-n">08</div><div class="ph-t">Parent dashboard</div><div class="ph-d">Read-only view over the attempt log: accuracy by topic, activity, weak spots.</div><div class="ph-h">4 h</div><div class="ph-bar"><i style="width:5.7%"></i></div></div>
+    <div class="phase"><div class="ph-n">09</div><div class="ph-t">Tests</div><div class="ph-d">Unit on the generator, the adaptive rule and the safety gate; e2e on register → play → progress.</div><div class="ph-h">5 h</div><div class="ph-bar"><i style="width:7.1%"></i></div></div>
+    <div class="phase"><div class="ph-n">10</div><div class="ph-t">Docs &amp; polish</div><div class="ph-d">README, setup, OpenAPI, the demo recording, final pass.</div><div class="ph-h">3 h</div><div class="ph-bar"><i style="width:4.3%"></i></div></div>
+    <div class="totalrow"><span>11 phases · ~45 commits</span><b>70 h</b></div>
+  </div>
+
+  <div class="note">
+    <span class="note-h">Where the AI-assistance answer comes from</span>
+    <p>The brief asks the candidate to explain where they used AI and to understand the generated code. The defensible version of that answer is structural, not apologetic: the process models above were the thinking, and they were done first. Generated code that implements a model you drew is code you can walk a reviewer through. Generated code that <em>is</em> the design is not.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <p>Design phase for <strong>Kids Math Learning</strong> &mdash; a math practice product for children aged 5&ndash;10. Source BPMN 2.0 models in <code>docs/bpmn/</code>; all three validate structurally against sequence-flow, shape and lane-partition checks.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  if(!links.length || !('IntersectionObserver' in window)) return;
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('on'); });
+        if(map[e.target.id]) map[e.target.id].classList.add('on');
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+  document.querySelectorAll('section[id]').forEach(function(s){ obs.observe(s); });
+})();
+</script>
