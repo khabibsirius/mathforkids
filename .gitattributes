@@ -1,0 +1,34 @@
+# Normalise line endings in the repository to LF.
+# Without this, files authored on Windows land in a Linux container with CRLF,
+# and a shell script with CRLF fails as "no such file or directory" — an error
+# that points nowhere near the actual cause.
+* text=auto eol=lf
+
+# Files that MUST be LF regardless of platform: anything executed in a container.
+*.sh        text eol=lf
+*.bash      text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+compose.yaml text eol=lf
+.env.example text eol=lf
+
+# Windows-only tooling keeps CRLF.
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# BPMN is XML — diff it as text so process changes are reviewable.
+*.bpmn      text eol=lf diff=xml
+
+# Binary: never touch, never diff.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.mp4       binary
+*.webm      binary
+*.woff      binary
+*.woff2     binary
+*.pdf       binary
