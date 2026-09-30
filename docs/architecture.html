@@ -880,8 +880,8 @@ prisma/
     <table>
       <thead><tr><th>Model</th><th class="num">Size</th><th>Verdict</th></tr></thead>
       <tbody>
-        <tr><td class="m">phi4:14b</td><td class="num">9.1 GB</td><td><strong>Default.</strong> Phi-4 was trained heavily on mathematical reasoning and holds a two-sentence instruction. The best accuracy-per-second here.</td></tr>
-        <tr><td class="m">qwen2.5-coder:7b</td><td class="num">4.7 GB</td><td>Fallback for weaker hardware. Code-tuned, so its prose is stiffer, but it is fast and obeys a JSON schema.</td></tr>
+        <tr><td class="m">qwen2.5-coder:7b</td><td class="num">4.7 GB</td><td><strong>Default, on measurement.</strong> Median <strong>11.7 s</strong> per hint on the build machine. Code-tuned, so the prose is stiffer, but it obeys the schema and it finishes.</td></tr>
+        <tr><td class="m">phi4:14b</td><td class="num">9.1 GB</td><td>Better mathematical prose, and the intended default until it was timed: <strong>22.7 s</strong> per hint with no GPU offload. Worth it only on a GPU, where both drop to 1&ndash;3 s.</td></tr>
         <tr><td class="m">qwen3.6:35b-a3b</td><td class="num">22 GB</td><td>Mixture-of-experts, ~3 B active, so quicker than the size suggests &mdash; but it emits reasoning that must be stripped. Needs <code>think: false</code>.</td></tr>
         <tr><td class="m">mistral-small:22b</td><td class="num">12 GB</td><td>Warmest natural language of the set. Noticeably slower. A reasonable swap if hint quality disappoints.</td></tr>
         <tr><td class="m">nexus1:1b</td><td class="num">1.3 GB</td><td>Too small to hold the constraint reliably. Useful only as a latency floor in testing.</td></tr>
@@ -925,8 +925,8 @@ JWT_REFRESH_TTL=7d
 <span class="c"># AI tutor — entirely optional</span>
 TUTOR_ENABLED=true
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=phi4:14b
-OLLAMA_TIMEOUT_MS=8000
+OLLAMA_MODEL=qwen2.5-coder:7b  <span class="c"># measured; phi4:14b needs a GPU</span>
+OLLAMA_TIMEOUT_MS=20000      <span class="c"># generous: the hint is off the critical path</span>
 OLLAMA_KEEP_ALIVE=30m        <span class="c"># or the first hint after idle takes 20s</span>
 OLLAMA_TEMPERATURE=0.3
 OLLAMA_NUM_PREDICT=120
@@ -951,7 +951,7 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
         <tr><td class="num">2</td><td>Easy</td><td class="m">6–7</td><td class="m">a+b ≤ 20</td><td class="m">a−b ≤ 20</td><td class="m">×1 ×2 ×5 ×10</td><td class="m">÷2 ÷5 ÷10 exact</td></tr>
         <tr><td class="num">3</td><td>Medium</td><td class="m">7–8</td><td class="m">≤ 100, carrying</td><td class="m">≤ 100, borrowing</td><td class="m">to 5×5</td><td class="m">exact, to 25</td></tr>
         <tr><td class="num">4</td><td>Hard</td><td class="m">8–9</td><td class="m">≤ 1000</td><td class="m">≤ 1000</td><td class="m">to 10×10</td><td class="m">exact, to 100</td></tr>
-        <tr><td class="num">5</td><td>Hard</td><td class="m">9–10</td><td class="m">3-digit, two-step</td><td class="m">3-digit, two-step</td><td class="m">2-digit × 1-digit</td><td class="m">with remainder</td></tr>
+        <tr><td class="num">5</td><td>Hard</td><td class="m">9–10</td><td class="m">3-digit, two-step</td><td class="m">3-digit, two-step</td><td class="m">2-digit × 1-digit</td><td class="m">exact, to 144</td></tr>
       </tbody>
     </table>
   </div>

@@ -262,13 +262,29 @@ if (tutorEnabled && model.endsWith('-cloud')) {
 }
 ```
 
-Default model is **`phi4:14b`** &mdash; Phi-4 was trained heavily on
-mathematical reasoning and holds a "two short sentences" instruction reliably
-at 9.1 GB. `qwen2.5-coder:7b` is the fallback for weaker hardware.
+### Choosing a model, with numbers
+
+`npm run tutor:check` runs six real problems through the real prompt, the real
+JSON schema and the real safety gate, and reports latency and verdicts. Measured
+on the development machine, which has **no GPU offload** (`size_vram: 0`):
+
+| Model | Size | Median per hint | Verdict |
+| --- | --- | --- | --- |
+| **`qwen2.5-coder:7b`** | 4.7 GB | **11.7 s** | Default. Stiffer prose, obeys the schema, finishes. |
+| `phi4:14b` | 9.1 GB | 22.7 s | Better maths prose. Worth it only with a GPU. |
+
+With GPU offload both drop to roughly 1&ndash;3 s and `phi4:14b` becomes the
+better default. Measure before assuming:
 
 ```bash
-ollama pull phi4:14b     # or set TUTOR_ENABLED=false and skip this entirely
+ollama pull qwen2.5-coder:7b   # or set TUTOR_ENABLED=false and skip entirely
+cd api && npm run build && npm run tutor:check
 ```
+
+An 11-second model is affordable here **only** because the hint is off the
+critical path. The child sees a static hint immediately; the AI explanation
+replaces it if and when it arrives. Had the model been called synchronously,
+this hardware would have produced an 11-second freeze on every wrong answer.
 
 ### The key never reaches the frontend
 
@@ -297,6 +313,21 @@ Any failure discards the model output entirely, logs it raw for inspection, and
 returns the static template. **The child cannot tell which path ran.** Fallback
 output is deliberately never cached, so a transient failure cannot poison the
 cache for 24 hours.
+
+#### It actually catches things
+
+Not a hypothetical. Six real problems through `qwen2.5-coder:7b`, and the gate
+rejected two of them:
+
+| Problem | What the model wrote | Rejected as |
+| --- | --- | --- |
+| `4 + 3`, age 5 | *"Try counting on from 4&hellip; How many more do you need to reach **7**?"* | `answer_leaked` &mdash; 7 is the answer |
+| `347 + 252`, age 10 | three sentences instead of two | `too_many_sentences` |
+
+A 33% rejection rate on a competent local model is the point. Both children
+still got a usable hint from the static template and neither could tell the
+difference. Reproduce it with `npm run tutor:check`; live counters are at
+`GET /health/llm` and in the parent dashboard.
 
 Implementation: [`api/src/domain/safety-gate.ts`](api/src/domain/safety-gate.ts),
 covered by 30 unit tests. Process model:

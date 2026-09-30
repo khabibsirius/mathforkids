@@ -273,15 +273,20 @@ export const api = {
 };
 
 /**
- * Polls for the tutor's explanation, twice, then gives up and leaves the
- * static hint in place. No websocket, no queue — this is a two-request
- * interaction and treating it as more than that would be infrastructure for
- * its own sake.
+ * Polls for the tutor's explanation, then gives up and leaves the static hint
+ * in place. No websocket, no queue — this is a polling interaction and
+ * treating it as more than that would be infrastructure for its own sake.
+ *
+ * The window is ~22s because a local model on CPU-only hardware takes 10-20s
+ * to produce a hint (measured: ~11.7s median for qwen2.5-coder:7b). That is
+ * affordable only because nothing is waiting on it: the static hint is already
+ * on screen, a wrong answer waits for an explicit "Next question" tap, and if
+ * the child has already moved on the result is simply discarded.
  */
 export async function awaitTutorHint(
   ticket: string,
-  attempts = 3,
-  delayMs = 1500,
+  attempts = 9,
+  delayMs = 2500,
 ): Promise<TutorHint | null> {
   for (let i = 0; i < attempts; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));

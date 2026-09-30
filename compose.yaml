@@ -44,8 +44,13 @@ services:
       # --- AI tutor (optional) ---
       TUTOR_ENABLED: ${TUTOR_ENABLED:-true}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi4:14b}
-      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-8000}
+      # Measured at ~11.7 s per hint on CPU-only hardware; phi4:14b is better
+      # prose but ~22.7 s without a GPU. See .env.example, or measure with
+      # `npm run tutor:check`.
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      # Generous because the hint is off the critical path — the child already
+      # has a static hint on screen before this call is even made.
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-20000}
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
       OLLAMA_TEMPERATURE: ${OLLAMA_TEMPERATURE:-0.3}
       OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-160}
