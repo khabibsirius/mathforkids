@@ -425,8 +425,15 @@ Nine rules, each with a reason:
 2. **Near-zero reading load below seven.** The question is `7 + 5 = ?` in a
    display face at `clamp(48px, 15vw, 88px)`. The instruction is an icon and
    optional audio, never a sentence.
-3. **Four choices, 88 px minimum targets**, widely spaced. A mis-tap recorded
-   as a wrong answer corrupts the adaptive data as well as the child's mood.
+3. **Four choices, big targets**, widely spaced &mdash; 88 px tall on a tablet
+   and never under 76 px on a phone. A mis-tap recorded as a wrong answer
+   corrupts the adaptive data as well as the child's mood.
+   Layout is fluid rather than fixed: grid tracks use
+   `minmax(min(100%, N), 1fr)` so they collapse to one column instead of
+   forcing a track wider than the screen, every flex child that holds text
+   carries `min-width: 0` so it shrinks instead of overflowing, and below
+   330 px the three difficulty buttons stack rather than squeeze &mdash;
+   a 40 px-wide tap target is not a target.
 4. **Wrong is quiet.** The chosen tile settles back, the correct one lights up,
    the hint appears underneath. No red flash, no X, no buzzer.
 5. **Right answers advance by themselves** after 1.4 s; wrong answers wait for

@@ -61,7 +61,7 @@ export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
 
         {error ? <Notice kind="bad">{error}</Notice> : null}
 
-        <div className="pick-grid">
+        <div className="pick-grid pick-grid--topics">
           {topics.map((topic) => (
             // A container, not a button: the three difficulty buttons inside
             // are the targets, and a button cannot legally nest buttons.

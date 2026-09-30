@@ -103,7 +103,7 @@ export default function Trophies({ onLeave }: { onLeave: () => void }) {
 
         <div className="card stack">
           <h2>How far each game has come</h2>
-          <div className="pick-grid">
+          <div className="pick-grid pick-grid--topics">
             {progress.topics.map((topic) => (
               <div key={topic.topic} className={`pick ${TOPIC_CLASS[topic.topic]}`} style={{ cursor: 'default' }}>
                 <div className="topic__symbol" aria-hidden="true">

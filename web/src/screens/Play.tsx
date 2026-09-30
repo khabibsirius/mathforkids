@@ -218,7 +218,7 @@ export default function Play() {
             </div>
           </div>
 
-          <div className="row" style={{ justifyContent: 'center' }}>
+          <div className="row result-actions" style={{ justifyContent: 'center' }}>
             {/* Calls begin() rather than navigating: the destination route is
                 the one already rendered, so React Router would keep this
                 component mounted and nothing would restart. */}
