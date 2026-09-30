@@ -1,6 +1,22 @@
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { MAX_AGE, MIN_AGE } from '../domain/topics';
+import { MAX_AGE, MAX_LEVEL, MIN_AGE, MIN_LEVEL, TOPICS } from '../domain/topics';
+
+/**
+ * A parent setting the level for one topic.
+ *
+ * Deliberately per topic rather than a single number: difficulty lives on
+ * (child, topic), so a global "level" field would have no meaning here.
+ */
+export class SetLevelDto {
+  @IsIn(TOPICS)
+  topic: string;
+
+  @IsInt()
+  @Min(MIN_LEVEL)
+  @Max(MAX_LEVEL)
+  level: number;
+}
 
 /**
  * Avatars are picked from a fixed set, not uploaded. A child chooses by

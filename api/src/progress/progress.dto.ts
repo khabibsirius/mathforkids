@@ -5,6 +5,9 @@ export class TopicProgressView {
   level: number;
   tier: string;
   levelDescription: string;
+  /** Bounds for the parent's level control — times tables start at 2. */
+  minLevel: number;
+  maxLevel: number;
   attempts: number;
   correct: number;
   /** Null when the child has not attempted this topic yet. */

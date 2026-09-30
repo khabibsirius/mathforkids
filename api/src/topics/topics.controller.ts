@@ -8,6 +8,8 @@ import {
   MAX_LEVEL,
   tierForLevel,
   TIER_LABEL,
+  type TierOption,
+  tierOptionsFor,
   TOPIC_META,
   TOPICS,
 } from '../domain/topics';
@@ -24,6 +26,12 @@ export class TopicView {
   tier: string;
   /** Plain description of what this level asks for, for the parent view. */
   levelDescription: string;
+  /**
+   * The three difficulties the child may pick, with the level each would put
+   * them on. Computed here so the tier-to-level mapping has one home rather
+   * than being duplicated in the interface.
+   */
+  tiers: TierOption[];
 }
 
 @ApiTags('topics')
@@ -56,6 +64,7 @@ export class TopicsController {
         maxLevel: MAX_LEVEL,
         tier: TIER_LABEL[tierForLevel(level)],
         levelDescription: LEVEL_DESCRIPTION[code][level] ?? `Level ${level}`,
+        tiers: tierOptionsFor(code, level),
       });
     }
     return views;

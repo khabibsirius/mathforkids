@@ -328,7 +328,10 @@ input:focus {
   border: 3px solid transparent;
 }
 
-.pick:hover {
+/* Only lift tiles that are actually clickable. Topic tiles became containers
+   when the three difficulty buttons moved inside them, and a container that
+   lifts under the cursor promises a click it does not handle. */
+button.pick:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lift);
   border-color: var(--blue-soft);
@@ -380,6 +383,81 @@ input:focus {
   border-radius: 999px;
   background: var(--surface-sunk);
   color: var(--ink-soft);
+}
+
+/* Difficulty choice.
+   Three buttons rather than a dropdown: a six-year-old can read three words
+   laid out side by side, and a <select> is a two-step interaction that hides
+   the options until you commit to opening it. The child's current tier is
+   marked so the default is obvious without being the only option. */
+.tier-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.tier-btn {
+  flex: 1 1 0;
+  min-height: 46px;
+  border-radius: 12px;
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  gap: 1px;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.tier-btn:hover {
+  transform: translateY(-1px);
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.tier-btn--current {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue-dark);
+}
+
+.tier-btn--current:hover {
+  background: var(--blue-dark);
+  color: #fff;
+}
+
+.tier-btn__you {
+  font-family: var(--body);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+/* Parent-side control. A select is right here: the audience reads fluently
+   and wants all five levels, not three tiers. */
+.level-select {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 2px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 40px;
+}
+
+.level-select:disabled {
+  opacity: 0.6;
 }
 
 /* ------------------------------------------------------------------ play */

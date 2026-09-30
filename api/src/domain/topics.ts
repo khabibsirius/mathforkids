@@ -141,3 +141,64 @@ export const LEVEL_DESCRIPTION: Record<TopicCode, Record<number, string>> = {
     5: 'Exact sharing up to 144',
   },
 };
+
+export const TIERS: readonly Tier[] = ['easy', 'medium', 'hard'] as const;
+
+export function isTier(value: unknown): value is Tier {
+  return typeof value === 'string' && (TIERS as readonly string[]).includes(value);
+}
+
+/** The level a tier begins at for this topic, respecting the topic's floor. */
+export function entryLevelForTier(topic: TopicCode, tier: Tier): number {
+  const min = TOPIC_META[topic].minLevel;
+  switch (tier) {
+    case 'easy':
+      return Math.max(min, 1);
+    case 'medium':
+      return Math.max(min, 3);
+    case 'hard':
+      return Math.max(min, 4);
+  }
+}
+
+/**
+ * Resolves a chosen tier to an actual level.
+ *
+ * Preserves the child's current level when it already sits inside the chosen
+ * tier: a child at level 2 who taps "Easy" should stay at 2, not be pushed
+ * back to 1. Choosing a tier you are already in is a no-op, which is what a
+ * child expects from tapping the button that is already highlighted.
+ */
+export function levelForTier(topic: TopicCode, tier: Tier, currentLevel: number): number {
+  const current = clampLevel(topic, currentLevel);
+  if (tierForLevel(current) === tier) return current;
+  return clampLevel(topic, entryLevelForTier(topic, tier));
+}
+
+export interface TierOption {
+  tier: Tier;
+  label: string;
+  /** The level this tier would put the child on, given where they are now. */
+  level: number;
+  description: string;
+  /** True for the tier the child is currently in. */
+  current: boolean;
+}
+
+/**
+ * The three choices a child is offered for a topic. Computed server-side so
+ * the tier-to-level mapping has exactly one home.
+ */
+export function tierOptionsFor(topic: TopicCode, currentLevel: number): TierOption[] {
+  const current = clampLevel(topic, currentLevel);
+  return TIERS.map((tier) => {
+    const level = levelForTier(topic, tier, current);
+    return {
+      tier,
+      label: TIER_LABEL[tier],
+      level,
+      description: LEVEL_DESCRIPTION[topic][level] ?? `Level ${level}`,
+      current: tierForLevel(current) === tier,
+    };
+  });
+}

@@ -63,24 +63,40 @@ export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
 
         <div className="pick-grid">
           {topics.map((topic) => (
-            <button
-              key={topic.code}
-              type="button"
-              className={`pick ${TOPIC_CLASS[topic.code]}`}
-              onClick={() => navigate(`/play/${topic.code}`)}
-            >
+            // A container, not a button: the three difficulty buttons inside
+            // are the targets, and a button cannot legally nest buttons.
+            <div key={topic.code} className={`pick ${TOPIC_CLASS[topic.code]}`}>
               <div className="topic__symbol" aria-hidden="true">
                 {topic.symbol}
               </div>
               <span className="pick__name">{topic.label}</span>
-              <span className="tier">{topic.tier}</span>
+
+              <div className="tier-row">
+                {topic.tiers.map((option) => (
+                  <button
+                    key={option.tier}
+                    type="button"
+                    className={option.current ? 'tier-btn tier-btn--current' : 'tier-btn'}
+                    // The tier travels in the URL rather than in router state,
+                    // so a refresh mid-round keeps the chosen difficulty.
+                    onClick={() => navigate(`/play/${topic.code}?tier=${option.tier}`)}
+                    aria-label={`${topic.label}, ${option.label}. ${option.description}`}
+                  >
+                    <span>{option.label}</span>
+                    {option.current ? <span className="tier-btn__you">yours</span> : null}
+                  </button>
+                ))}
+              </div>
+
               <span className="tiny">{topic.levelDescription}</span>
-            </button>
+            </div>
           ))}
         </div>
 
         <p className="tiny center">
           Ten questions a round. There is no timer &mdash; take as long as you like.
+          <br />
+          Pick any difficulty you fancy. It changes by itself as you get better.
         </p>
       </div>
     </div>

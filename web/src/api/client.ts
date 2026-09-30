@@ -8,6 +8,7 @@ import type {
   Progress,
   SessionResult,
   SessionStart,
+  Tier,
   Topic,
   TokenPair,
   TopicCode,
@@ -235,8 +236,26 @@ export const api = {
     return request<Topic[]>('/topics', { as: 'child' });
   },
 
-  startSession(topic: TopicCode): Promise<SessionStart> {
-    return request<SessionStart>('/sessions', { method: 'POST', body: { topic }, as: 'child' });
+  /**
+   * Omit the tier and the round runs at whatever level the adaptive rule has
+   * arrived at. Supplying one is an explicit choice that also becomes the
+   * child's level for this topic.
+   */
+  startSession(topic: TopicCode, tier?: Tier): Promise<SessionStart> {
+    return request<SessionStart>('/sessions', {
+      method: 'POST',
+      body: tier ? { topic, tier } : { topic },
+      as: 'child',
+    });
+  },
+
+  /** Parent-only. The adaptive rule keeps running from the level that is set. */
+  setChildLevel(childId: string, topic: TopicCode, level: number): Promise<Child> {
+    return request<Child>(`/children/${childId}/levels`, {
+      method: 'PATCH',
+      body: { topic, level },
+      as: 'parent',
+    });
   },
 
   nextExercise(sessionId: string): Promise<NextExercise> {

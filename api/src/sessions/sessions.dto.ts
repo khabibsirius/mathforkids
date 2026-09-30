@@ -1,10 +1,22 @@
 import { IsIn, IsOptional, IsInt, Max, Min } from 'class-validator';
 import type { Exercise, Topic } from '@prisma/client';
-import { TOPIC_META, TOPICS } from '../domain/topics';
+import { type Tier, TIERS, TOPIC_META, TOPICS } from '../domain/topics';
 
 export class StartSessionDto {
   @IsIn(TOPICS)
   topic: Topic;
+
+  /**
+   * Difficulty chosen by the child for this round: easy, medium or hard.
+   *
+   * Omit it and the round runs at the level the adaptive rule has arrived at.
+   * Supplying one is an explicit override that also becomes the child's new
+   * level for this topic — otherwise the next round would silently revert and
+   * the choice would have been a lie.
+   */
+  @IsOptional()
+  @IsIn(TIERS)
+  tier?: Tier;
 
   /** Questions in the round. Defaults to 10. */
   @IsOptional()

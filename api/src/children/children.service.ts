@@ -120,6 +120,44 @@ export class ChildrenService {
     return this.toView(child, child.topicLevels, child._count.badges);
   }
 
+  /**
+   * A parent setting the level for one topic directly.
+   *
+   * The adaptive rule keeps running afterwards, so this is a nudge rather than
+   * a lock — attemptsAtLevel resets to zero so the anti-oscillation guard
+   * re-arms from the new level instead of firing on the next answer.
+   */
+  async setLevel(
+    parentId: string,
+    childId: string,
+    topic: Topic,
+    level: number,
+  ): Promise<ChildView> {
+    const principal: Principal = { kind: 'parent', id: parentId };
+    await this.resolveChild(principal, childId);
+
+    // Refused rather than silently clamped: a parent who asks for times tables
+    // at level 1 should be told that level does not exist for that topic.
+    const min = TOPIC_META[topic].minLevel;
+    if (level < min) {
+      throw new AppError(
+        'TOPIC_NOT_AVAILABLE_AT_LEVEL',
+        `${TOPIC_META[topic].label} starts at level ${min}, not ${level}`,
+        { topic, minLevel: min, requested: level },
+      );
+    }
+
+    const next = clampLevel(topic, level);
+    await this.prisma.childTopicLevel.upsert({
+      where: { childId_topic: { childId, topic } },
+      create: { childId, topic, level: next, attemptsAtLevel: 0 },
+      update: { level: next, attemptsAtLevel: 0 },
+    });
+
+    this.logger.log(`parent ${parentId} set ${topic} to level ${next} for child ${childId}`);
+    return this.get(principal, childId);
+  }
+
   /** Reads the level for one topic, creating the row if it is somehow absent. */
   async levelFor(childId: string, topic: Topic): Promise<{ level: number; attemptsAtLevel: number }> {
     const row = await this.prisma.childTopicLevel.upsert({

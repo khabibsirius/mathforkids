@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError, awaitTutorHint, session } from '../api/client';
+import { isTier } from '../api/types';
 import type { AttemptResult, Exercise, SessionResult, TopicCode, TutorHint } from '../api/types';
 import { Avatar, Dots, Loading, Notice, Speak, Stat, TopBar } from '../components/ui';
 
@@ -14,6 +15,8 @@ type Phase = 'loading' | 'question' | 'feedback' | 'finished' | 'error';
 
 export default function Play() {
   const { topic } = useParams<{ topic: string }>();
+  const [searchParams] = useSearchParams();
+  const tierParam = searchParams.get('tier');
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('loading');
@@ -32,15 +35,22 @@ export default function Play() {
   const shownAt = useRef<number>(Date.now());
   const started = useRef(false);
 
-  // --- start the round ----------------------------------------------------
-  useEffect(() => {
-    // Guarded because StrictMode double-invokes effects in development, and a
-    // second call here would open a second session.
-    if (started.current) return;
-    started.current = true;
+  // --- start (or restart) the round ---------------------------------------
+  const begin = useCallback((): void => {
+    setPhase('loading');
+    setSessionId(null);
+    setExercise(null);
+    setResult(null);
+    setTutorHint(null);
+    setChosen(null);
+    setHistory([]);
+    setSummary(null);
+    setError(null);
 
     api
-      .startSession(topic as TopicCode)
+      // An absent or malformed tier simply means "run at my current level",
+      // so a hand-edited URL degrades instead of 422-ing at a child.
+      .startSession(topic as TopicCode, isTier(tierParam) ? tierParam : undefined)
       .then((start) => {
         setSessionId(start.sessionId);
         setTargetCount(start.targetCount);
@@ -52,7 +62,15 @@ export default function Play() {
         setError(err instanceof ApiError ? err.kidMessage : 'Could not start the round.');
         setPhase('error');
       });
-  }, [topic]);
+  }, [topic, tierParam]);
+
+  useEffect(() => {
+    // Guarded because StrictMode double-invokes effects in development, and a
+    // second call here would open a second session.
+    if (started.current) return;
+    started.current = true;
+    begin();
+  }, [begin]);
 
   // --- next question ------------------------------------------------------
   const advance = useCallback(async (): Promise<void> => {
@@ -201,11 +219,10 @@ export default function Play() {
           </div>
 
           <div className="row" style={{ justifyContent: 'center' }}>
-            <button
-              type="button"
-              className="btn btn--primary btn--big"
-              onClick={() => navigate(`/play/${summary.topic}`, { replace: true })}
-            >
+            {/* Calls begin() rather than navigating: the destination route is
+                the one already rendered, so React Router would keep this
+                component mounted and nothing would restart. */}
+            <button type="button" className="btn btn--primary btn--big" onClick={begin}>
               Play again
             </button>
             <Link to="/" className="btn btn--big">

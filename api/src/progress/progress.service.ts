@@ -3,6 +3,7 @@ import type { Principal } from '../auth/principal';
 import { ChildrenService } from '../children/children.service';
 import {
   LEVEL_DESCRIPTION,
+  MAX_LEVEL,
   tierForLevel,
   TIER_LABEL,
   TOPIC_META,
@@ -83,6 +84,8 @@ export class ProgressService {
         level,
         tier: TIER_LABEL[tierForLevel(level)],
         levelDescription: LEVEL_DESCRIPTION[code][level] ?? `Level ${level}`,
+        minLevel: TOPIC_META[code].minLevel,
+        maxLevel: MAX_LEVEL,
         attempts: total,
         correct: right,
         accuracy: total === 0 ? null : Number((right / total).toFixed(3)),

@@ -4,7 +4,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { ChildTokenResponse } from '../auth/auth.dto';
 import { Auth, CurrentPrincipal, Principal } from '../auth/principal';
-import { ChildView, CreateChildDto, UpdateChildDto } from './children.dto';
+import type { Topic } from '@prisma/client';
+import { ChildView, CreateChildDto, SetLevelDto, UpdateChildDto } from './children.dto';
 import { ChildrenService } from './children.service';
 
 @ApiTags('children')
@@ -60,6 +61,23 @@ export class ChildrenController {
   @ApiOperation({ summary: 'Read one child profile' })
   get(@CurrentPrincipal() principal: Principal, @Param('id') childId: string): Promise<ChildView> {
     return this.children.get(principal, childId);
+  }
+
+  /**
+   * Set the difficulty for one topic.
+   *
+   * The adaptive rule keeps running from there, so this steers rather than
+   * pins. Refuses a level a topic does not have (times tables start at 2).
+   */
+  @Patch(':id/levels')
+  @Auth('parent')
+  @ApiOperation({ summary: 'Set this child’s difficulty level for one topic' })
+  setLevel(
+    @CurrentPrincipal() principal: Principal,
+    @Param('id') childId: string,
+    @Body() dto: SetLevelDto,
+  ): Promise<ChildView> {
+    return this.children.setLevel(principal.id, childId, dto.topic as Topic, dto.level);
   }
 
   @Patch(':id')

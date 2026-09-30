@@ -9,6 +9,24 @@
 
 export type TopicCode = 'ADDITION' | 'SUBTRACTION' | 'MULTIPLICATION' | 'DIVISION';
 
+/** The three difficulties a child is shown, over five engine levels. */
+export type Tier = 'easy' | 'medium' | 'hard';
+
+export const TIERS: Tier[] = ['easy', 'medium', 'hard'];
+
+export function isTier(value: unknown): value is Tier {
+  return typeof value === 'string' && (TIERS as string[]).includes(value);
+}
+
+export interface TierOption {
+  tier: Tier;
+  label: string;
+  /** The level this tier puts the child on, given where they are now. */
+  level: number;
+  description: string;
+  current: boolean;
+}
+
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
@@ -50,6 +68,7 @@ export interface Topic {
   maxLevel: number;
   tier: string;
   levelDescription: string;
+  tiers: TierOption[];
 }
 
 export interface Exercise {
@@ -146,6 +165,8 @@ export interface TopicProgress {
   level: number;
   tier: string;
   levelDescription: string;
+  minLevel: number;
+  maxLevel: number;
   attempts: number;
   correct: number;
   accuracy: number | null;

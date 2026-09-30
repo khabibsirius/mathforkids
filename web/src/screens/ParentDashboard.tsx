@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { Child, LlmHealth, Progress } from '../api/types';
+import type { Child, LlmHealth, Progress, TopicCode } from '../api/types';
 import Chart from '../components/Chart';
 import { Avatar, Loading, Notice, Stat, TopBar } from '../components/ui';
 
@@ -22,6 +22,7 @@ export default function ParentDashboard({ onSignOut }: { onSignOut: () => void }
   const [progress, setProgress] = useState<Progress | null>(null);
   const [llm, setLlm] = useState<LlmHealth | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savingTopic, setSavingTopic] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -64,6 +65,24 @@ export default function ParentDashboard({ onSignOut }: { onSignOut: () => void }
       alive = false;
     };
   }, [selected]);
+
+  /**
+   * Steer the difficulty for one topic. The adaptive rule keeps running from
+   * whatever is set, so this is a nudge rather than a lock.
+   */
+  const changeLevel = async (topic: TopicCode, level: number): Promise<void> => {
+    if (!selected) return;
+    setSavingTopic(topic);
+    setError(null);
+    try {
+      await api.setChildLevel(selected, topic, level);
+      setProgress(await api.progress(selected, 'parent'));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not change the level.');
+    } finally {
+      setSavingTopic(null);
+    }
+  };
 
   if (children === null) return <Loading what="Loading the dashboard" />;
 
@@ -180,7 +199,27 @@ export default function ParentDashboard({ onSignOut }: { onSignOut: () => void }
                           </strong>
                         </td>
                         <td>
-                          <span className="tier">{topic.tier}</span>
+                          <select
+                            className="level-select"
+                            value={topic.level}
+                            disabled={savingTopic === topic.topic}
+                            aria-label={`Difficulty level for ${topic.label}`}
+                            onChange={(e) =>
+                              void changeLevel(topic.topic, Number(e.target.value))
+                            }
+                          >
+                            {Array.from(
+                              { length: topic.maxLevel - topic.minLevel + 1 },
+                              (_, i) => topic.minLevel + i,
+                            ).map((value) => (
+                              <option key={value} value={value}>
+                                Level {value}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="tiny" style={{ marginTop: 4 }}>
+                            {savingTopic === topic.topic ? 'saving…' : topic.tier}
+                          </div>
                         </td>
                         <td className="tiny">{topic.levelDescription}</td>
                         <td className="num">{topic.attempts}</td>
@@ -206,7 +245,10 @@ export default function ParentDashboard({ onSignOut }: { onSignOut: () => void }
               </div>
               <p className="tiny" style={{ margin: 0 }}>
                 Difficulty is tracked per topic, so being strong at adding does not make sharing
-                harder. Answer speed is recorded but never affects progression.
+                harder. Change a level here and it takes effect on the next round &mdash; the
+                automatic adjustment carries on from wherever you set it, so this steers rather
+                than pins. Your child can also pick Easy, Medium or Hard for themselves before a
+                round. Answer speed is recorded but never affects progression.
               </p>
             </div>
 

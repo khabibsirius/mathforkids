@@ -6,7 +6,7 @@ import { AppError } from '../common/errors';
 import { BadgeContext, newlyEarned } from '../domain/badges';
 import { generateExercise, randomSeed } from '../domain/exercise-generator';
 import { AttemptFact, summariseSession } from '../domain/scoring';
-import { tierForLevel, TIER_LABEL, TOPIC_META } from '../domain/topics';
+import { levelForTier, tierForLevel, TIER_LABEL, TOPIC_META } from '../domain/topics';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   BadgeView,
@@ -35,8 +35,26 @@ export class SessionsService {
 
   async start(principal: Principal, dto: StartSessionDto): Promise<SessionStartView> {
     const child = await this.children.resolveChild(principal, principal.id);
-    const { level } = await this.children.levelFor(child.id, dto.topic);
+    const stored = await this.children.levelFor(child.id, dto.topic);
     const targetCount = dto.targetCount ?? 10;
+
+    // An explicit tier choice is persisted, not just applied for this round:
+    // if it were temporary the next round would revert and the button would
+    // have been decoration. attemptsAtLevel resets so the anti-oscillation
+    // guard re-arms from the new level rather than firing immediately.
+    let level = stored.level;
+    if (dto.tier) {
+      level = levelForTier(dto.topic, dto.tier, stored.level);
+      if (level !== stored.level) {
+        await this.prisma.childTopicLevel.update({
+          where: { childId_topic: { childId: child.id, topic: dto.topic } },
+          data: { level, attemptsAtLevel: 0 },
+        });
+        this.logger.log(
+          `child ${child.id} chose ${dto.tier} for ${dto.topic}: ${stored.level} -> ${level}`,
+        );
+      }
+    }
 
     const session = await this.prisma.session.create({
       data: { childId: child.id, topic: dto.topic, targetCount },

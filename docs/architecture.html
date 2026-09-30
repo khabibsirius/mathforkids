@@ -813,7 +813,7 @@ prisma/
 <!-- ============ 5 ============ -->
 <section id="api">
   <span class="sec-no">05 — API surface</span>
-  <h2>Fifteen endpoints</h2>
+  <h2>Seventeen endpoints</h2>
   <p class="lede">Every route in the brief, plus the two health checks that make the Ollama dependency debuggable instead of mysterious.</p>
 
   <div class="tbl">
@@ -826,6 +826,7 @@ prisma/
         <tr><td><span class="verb">GET</span></td><td class="m">/children</td><td>Profiles under this parent</td><td>parent</td></tr>
         <tr><td><span class="verb">POST</span></td><td class="m">/children</td><td>Create a profile, seed levels from age</td><td>parent</td></tr>
         <tr><td><span class="verb">PATCH</span></td><td class="m">/children/:id</td><td>Rename, change avatar</td><td>parent</td></tr>
+        <tr><td><span class="verb">PATCH</span></td><td class="m">/children/:id/levels</td><td>Set the difficulty for one topic</td><td>parent</td></tr>
         <tr><td><span class="verb">POST</span></td><td class="m">/children/:id/token</td><td>Mint a child-scoped token</td><td>parent</td></tr>
         <tr><td><span class="verb">GET</span></td><td class="m">/topics</td><td>Topics with this child's level in each</td><td>child</td></tr>
         <tr><td><span class="verb">POST</span></td><td class="m">/sessions</td><td>Open a session, return the first exercise</td><td>child</td></tr>
@@ -957,6 +958,12 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
   </div>
 
   <p>The child sees three tiers because the brief asks for three and because a child who is told they have been moved from level 4 to level 3 has been told they are worse than they were yesterday. The engine keeps five so it can adjust without that ever being visible.</p>
+
+  <div class="note">
+    <span class="note-h">Adaptation is the default, not the only route</span>
+    <p>Difficulty that only moves by itself is difficulty nobody can find. A child picks Easy, Medium or Hard on the topic tile before a round; a parent sets the exact level per topic in the dashboard. The adaptive rule then carries on from wherever it was set, so either choice steers rather than pins &mdash; and a tier choice is persisted rather than applied for one round, because a setting that silently reverted would have been decoration.</p>
+    <p>Choosing a tier you are already in is a no-op. A child at level 2 who taps &ldquo;Easy&rdquo; stays at 2 rather than being pushed back to 1 for agreeing with where they already are.</p>
+  </div>
 
   <pre><span class="c">// evaluated after every attempt, per (child, topic)</span>
 <span class="k">const</span> window = lastAttempts(childId, topic, <span class="s">5</span>);

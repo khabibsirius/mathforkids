@@ -63,7 +63,7 @@ are predicates over that series. The parent dashboard is a read model of it.
 | Multiple choice | Four options, distractors chosen pedagogically |
 | Correct / incorrect feedback | Immediate, with a hint on every wrong answer |
 | Score and progress tracking | XP, streak, badges, 14-day series |
-| Backend API | 16 endpoints, `/api/v1`, documented at `/api/docs` |
+| Backend API | 17 endpoints, `/api/v1`, documented at `/api/docs` |
 | Database persistence | PostgreSQL 16 via Prisma, 9 tables |
 | Basic authentication | Parent account + child-scoped tokens |
 | Child-appropriate UX | See [below](#designing-for-five-year-olds) |
@@ -182,7 +182,7 @@ them on every request, and both can be rebuilt from the log.
 
 ## API
 
-16 endpoints under `/api/v1`, plus two unauthenticated health routes at the
+17 endpoints under `/api/v1`, plus two unauthenticated health routes at the
 root. Interactive docs at **http://localhost:3000/api/docs**.
 
 | Method | Path | Auth |
@@ -194,6 +194,7 @@ root. Interactive docs at **http://localhost:3000/api/docs**.
 | `GET` | `/children` | parent |
 | `POST` | `/children` | parent |
 | `PATCH` | `/children/:id` | parent |
+| `PATCH` | `/children/:id/levels` | parent |
 | `GET` | `/children/:id` | parent or that child |
 | `POST` | `/children/:id/token` | parent |
 | `GET` | `/topics` | child |
@@ -379,6 +380,23 @@ if (accuracy <= 0.4) level - 1                    // floored at the topic minimu
 else hold
 ```
 
+### Choosing it, as well as earning it
+
+Adaptation is the default, not the only route. Both ends can steer:
+
+- **The child** picks Easy, Medium or Hard on the topic tile before a round.
+  Their current tier is marked "yours", so the recommendation is visible
+  without being the only option.
+- **The parent** sets the exact level per topic in the dashboard.
+
+Either way the adaptive rule carries on from wherever it was set, so a choice
+steers rather than pins. A tier choice is **persisted**, not applied for one
+round only — if it reverted afterwards the button would have been decoration.
+
+Picking a tier you are already in is a no-op: a child at level 2 who taps
+"Easy" stays at 2 rather than being pushed back to 1 for agreeing with where
+they already are.
+
 The `attemptsAtLevel < 5` guard is what stops thrashing: without it a child on
 a boundary bounces between two levels every other question and the round stops
 feeling coherent. Response time is recorded and available to the rule but is
@@ -420,7 +438,10 @@ Nine rules, each with a reason:
    improvement — because a screen that only says "3 out of 10" teaches a child
    that they are bad at maths. It never invents one; the priority order is
    tested.
-8. **One decision per screen.** Pick a player. Pick a topic. Answer.
+8. **One decision per screen.** Pick a player. Pick a topic and how hard you
+   want it, in one tap. Answer. The difficulty buttons are three words side by
+   side rather than a dropdown, because a `<select>` hides its options until
+   you commit to opening it &mdash; a two-step interaction for a six-year-old.
 9. **Read the question aloud** via the Web Speech API — browser-native, no
    backend cost, and it genuinely serves the children who cannot read the
    screen yet.
@@ -489,8 +510,9 @@ Every variable, with comments: [`.env.example`](.env.example) for Docker,
 
 ```bash
 cd api
-npm test                       # 73 unit tests over src/domain
-npm run smoke                  # 40 HTTP assertions against a running API
+npm test                       # 89 unit tests over src/domain
+npm run smoke                  # 52 HTTP assertions against a running API
+npm run tutor:check            # measure the AI path and the safety gate
 ```
 
 **Unit tests** cover the pure logic — the generator (determinism, the answer is
@@ -498,8 +520,9 @@ always present, four distinct non-negative choices, division always exact,
 no negative subtraction, the answer is not always in the same slot,
 pedagogical distractors), the adaptive rule (every branch, both floors and the
 cap, the anti-oscillation guard), scoring (XP, combo cap, no speed bonus, and
-that the highlight never claims something untrue), and all seven safety-gate
-checks.
+that the highlight never claims something untrue), the tier-to-level mapping
+(idempotence, topic floors, and that a resolved level always lands in the tier
+that was asked for), and all seven safety-gate checks.
 
 **The smoke test** runs against the real server, real Prisma and real Postgres,
 which is why it exists instead of a DI-mocked e2e suite. It proves things a
@@ -511,9 +534,12 @@ mocked suite cannot:
 ✓ a refresh token cannot be used as a bearer token
 ✓ another parent cannot read this child (IDOR)
 ✓ a child token cannot list profiles
+✓ a child cannot set their own level through the parent route
+✓ times tables cannot be set to level 1, which does not exist
+✓ the choice persists, so the next round does not silently revert
 ✓ answering the same exercise twice gives 409
 ✓ next is idempotent while a question is unanswered
-✓ hint ticket resolves to a terminal state
+✓ the delivered hint does not state the answer
 ```
 
 ---
@@ -536,8 +562,8 @@ Stated plainly rather than left to be discovered:
   logout is client-side only.
 - **The daily-challenge bonus is not built.** The streak already incentivises
   the behaviour it was there to encourage.
-- **The parent dashboard is read-only.** No way to set a level manually or
-  reset progress.
+- **The parent dashboard cannot reset progress.** Levels can be set per topic,
+  but there is no way to clear a child's history or delete a profile.
 
 ---
 
