@@ -49,11 +49,15 @@ describe('generateExercise', () => {
     }
   });
 
-  it('always includes the correct answer among the choices', () => {
+  it('includes the correct answer exactly when the question is not a trap', () => {
+    // This used to assert the answer was ALWAYS among the choices, which
+    // stopped being true once trap questions arrived: on those all four
+    // options are deliberately wrong and the child has to type the answer.
+    // The surviving invariant is membership if and only if answerInChoices.
     for (const { topic, level } of everyCombination()) {
       for (const seed of SEEDS) {
         const ex = generateExercise(topic, level, seed);
-        expect(ex.choices).toContain(ex.correctAnswer);
+        expect(ex.choices.includes(ex.correctAnswer)).toBe(ex.answerInChoices);
       }
     }
   });

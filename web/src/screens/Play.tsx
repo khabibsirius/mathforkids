@@ -14,6 +14,12 @@ const AUTO_ADVANCE_MS = 1400;
 
 type Phase = 'loading' | 'question' | 'feedback' | 'finished' | 'error';
 
+/**
+ * Every question offers both routes at once: four options to tap, and a keypad
+ * to type. On some questions none of the four is correct, and the child has to
+ * work the answer out and type it. Nothing in the payload says which question
+ * that is — the server withholds it, so this component genuinely cannot know.
+ */
 export default function Play() {
   const { topic } = useParams<{ topic: string }>();
   const [searchParams] = useSearchParams();
@@ -26,8 +32,6 @@ export default function Play() {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
   const [typedValue, setTypedValue] = useState('');
-  /** Set when the child taps "I would rather type it" on a choice question. */
-  const [switchedToTyping, setSwitchedToTyping] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [tutorHint, setTutorHint] = useState<TutorHint | null>(null);
   const [history, setHistory] = useState<('right' | 'wrong')[]>([]);
@@ -39,14 +43,6 @@ export default function Play() {
   const shownAt = useRef<number>(Date.now());
   const started = useRef(false);
 
-  /**
-   * Typing is used either because the server served a TYPED exercise — which
-   * arrives with no choices at all — or because the child asked to type on a
-   * choice question. There is no way back from a TYPED one, because there are
-   * no options to return to.
-   */
-  const usingKeypad = exercise !== null && (exercise.inputMode === 'TYPED' || switchedToTyping);
-
   // --- start (or restart) the round ---------------------------------------
   const begin = useCallback((): void => {
     setPhase('loading');
@@ -56,7 +52,6 @@ export default function Play() {
     setTutorHint(null);
     setChosen(null);
     setTypedValue('');
-    setSwitchedToTyping(false);
     setHistory([]);
     setSummary(null);
     setError(null);
@@ -93,7 +88,6 @@ export default function Play() {
     setResult(null);
     setChosen(null);
     setTypedValue('');
-    setSwitchedToTyping(false);
 
     try {
       const next = await api.nextExercise(sessionId);
@@ -259,6 +253,7 @@ export default function Play() {
 
   const hintText = tutorHint?.text ?? result?.hint?.text;
   const encouragement = tutorHint?.encouragement || result?.hint?.encouragement;
+  const locked = phase === 'feedback' || busy;
 
   return (
     <div className="shell">
@@ -285,21 +280,16 @@ export default function Play() {
         <div className="question">
           <p className="tiny" style={{ marginTop: 0 }}>
             Question {Math.min(history.length + 1, targetCount)} of {targetCount}
-            {usingKeypad ? ' · type the answer' : ''}
           </p>
           <div className="question__sum">
             {exercise.operandA} <em aria-label={exercise.topic.toLowerCase()}>{exercise.symbol}</em>{' '}
             {exercise.operandB}{' '}
-            {usingKeypad ? (
-              <span className="question__blank">
-                ={' '}
-                <span className={typedValue ? 'typed-slot' : 'typed-slot typed-slot--empty'}>
-                  {typedValue || '?'}
-                </span>
+            <span className="question__blank">
+              ={' '}
+              <span className={typedValue ? 'typed-slot' : 'typed-slot typed-slot--empty'}>
+                {typedValue || '?'}
               </span>
-            ) : (
-              <span className="question__blank">= ?</span>
-            )}
+            </span>
           </div>
           <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
             <Speak
@@ -310,47 +300,30 @@ export default function Play() {
           </div>
         </div>
 
-        {usingKeypad ? (
-          <Keypad
-            value={typedValue}
-            onChange={setTypedValue}
-            onSubmit={() => void answer(Number(typedValue), true)}
-            disabled={phase !== 'question' || busy}
-          />
-        ) : (
-          <>
-            <div className={nudge ? 'choices choices--nudge' : 'choices'}>
-              {exercise.choices.map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  className={choiceClass(choice)}
-                  disabled={phase === 'feedback' || busy}
-                  onClick={() => void answer(choice, false)}
-                >
-                  {choice}
-                </button>
-              ))}
-            </div>
+        <div className={nudge ? 'choices choices--nudge' : 'choices'}>
+          {exercise.choices.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              className={choiceClass(choice)}
+              disabled={locked}
+              onClick={() => void answer(choice, false)}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
 
-            {/* Always available, never the loud option: a child who would
-                rather work it out than recognise it can, on any question. */}
-            {phase === 'question' ? (
-              <div className="switch-input">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => {
-                    setSwitchedToTyping(true);
-                    setTypedValue('');
-                  }}
-                >
-                  I would rather type it
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
+        {/* Always present, at every level. Sometimes it is the only way to get
+            the question right, and a child cannot tell in advance which times
+            those are — so it pays to work the answer out first. */}
+        <div className="or-type">or type it</div>
+        <Keypad
+          value={typedValue}
+          onChange={setTypedValue}
+          onSubmit={() => void answer(Number(typedValue), true)}
+          disabled={locked}
+        />
 
         <div aria-live="polite">
           {phase === 'feedback' && result ? (
@@ -362,6 +335,9 @@ export default function Play() {
                 <div className="row">
                   <span className="xp-pop">+{result.xpEarned} XP</span>
                   {result.combo >= 3 ? <span className="tier">{result.combo} in a row</span> : null}
+                  {!result.answerWasInChoices ? (
+                    <span className="tier">you typed it yourself!</span>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -369,6 +345,20 @@ export default function Play() {
                 <div className="feedback__title">
                   Not quite &mdash; it was <strong>{result.correctAnswer}</strong>
                 </div>
+
+                {/* Explains the trap rather than leaving a child puzzled about
+                    why every option was wrong. */}
+                {!result.answerWasInChoices ? (
+                  <div className="hint">
+                    <span className="hint__mark" aria-hidden="true">
+                      {'\u{1F575}'}
+                    </span>
+                    <div>
+                      None of the buttons was right that time! That is why you can always type
+                      your own answer.
+                    </div>
+                  </div>
+                ) : null}
 
                 {hintText ? (
                   <div className="hint">

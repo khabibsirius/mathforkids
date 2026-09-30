@@ -143,7 +143,7 @@ async function main() {
     expect: 201,
   });
   await call('GET', `/children/${childId}`, { token: other.body.accessToken, expect: 403 });
-  check("another parent cannot read this child (IDOR)", true);
+  check('another parent cannot read this child (IDOR)', true);
   await call('POST', `/children/${childId}/token`, { token: other.body.accessToken, expect: 403 });
   check('another parent cannot mint a token for this child', true);
   await call('GET', '/children', { token: childToken, expect: 403 });
@@ -166,12 +166,12 @@ async function main() {
     addBefore.tiers.every((t) => typeof t.description === 'string' && t.description.length > 0),
   );
 
-  const hardRound = await call('POST', '/sessions', {
+  const hardPick = await call('POST', '/sessions', {
     token: childToken,
     body: { topic: 'ADDITION', tier: 'hard' },
     expect: 201,
   });
-  check('a child can start a round at a chosen tier', hardRound.body.level >= 4, `level ${hardRound.body.level}`);
+  check('a child can start a round at a chosen tier', hardPick.body.level >= 4, `level ${hardPick.body.level}`);
 
   const afterChoice = await call('GET', '/topics', { token: childToken, expect: 200 });
   check(
@@ -216,90 +216,94 @@ async function main() {
   });
   check('a child cannot set their own level through the parent route', true);
 
-  console.log('\ntyped answers');
-  /**
-   * Opens a round and walks forward until it finds an exercise in the wanted
-   * mode, answering the ones it passes over, and returns that one UNANSWERED.
-   *
-   * One session per mode, because GET /next is idempotent while an exercise is
-   * outstanding: an exercise cannot be both kept for assertions and walked
-   * past. An earlier version of this tried and asserted against an exercise it
-   * had already answered, which showed up as 409 where 422 was expected.
-   */
-  async function findExercise(wantMode, topic, tier) {
-    const opened = await call('POST', '/sessions', {
+  // -----------------------------------------------------------------------
+  console.log('\ntrap questions (no correct option)');
+  // Every question ships four options and also accepts a typed answer. On a
+  // share of harder questions none of the four is correct, and the child has
+  // to work the answer out and type it.
+  const hardRound = await call('POST', '/sessions', {
+    token: childToken,
+    body: { topic: 'SUBTRACTION', tier: 'hard' },
+    expect: 201,
+  });
+
+  let probe = hardRound.body.exercise;
+  let sawTrap = false;
+  let sawNormal = false;
+  let trapChoices = null;
+  let trapAnswer = null;
+  let alwaysFour = true;
+  let neverLeaks = true;
+
+  for (let i = 0; i < 14 && probe; i += 1) {
+    if (probe.choices.length !== 4) alwaysFour = false;
+    const wire = JSON.stringify(probe);
+    if (wire.includes('correctAnswer') || wire.includes('answerInChoices')) neverLeaks = false;
+
+    const res = await call('POST', '/attempts', {
       token: childToken,
-      body: { topic, tier },
+      body: { exerciseId: probe.id, answer: probe.choices[0], responseMs: 1500 },
       expect: 201,
     });
-    let ex = opened.body.exercise;
-    for (let i = 0; i < 12 && ex; i += 1) {
-      if (ex.inputMode === wantMode) return ex;
-      await call('POST', '/attempts', {
-        token: childToken,
-        body: {
-          exerciseId: ex.id,
-          answer: ex.inputMode === 'TYPED' ? 0 : ex.choices[0],
-          responseMs: 1200,
-          ...(ex.inputMode === 'TYPED' ? { typed: true } : {}),
-        },
-        expect: 201,
-      });
-      const nxt = await call('GET', `/sessions/${opened.body.sessionId}/next`, {
-        token: childToken,
-        expect: 200,
-      });
-      ex = nxt.body.done ? null : nxt.body.exercise;
+
+    if (res.body.answerWasInChoices === false) {
+      if (!sawTrap) {
+        trapChoices = probe.choices;
+        trapAnswer = res.body.correctAnswer;
+      }
+      sawTrap = true;
+    } else {
+      sawNormal = true;
     }
-    return null;
+    if (sawTrap && sawNormal) break;
+
+    const nxt = await call('GET', `/sessions/${hardRound.body.sessionId}/next`, {
+      token: childToken,
+      expect: 200,
+    });
+    probe = nxt.body.done ? null : nxt.body.exercise;
   }
 
-  // Levels 1-2 are always multiple choice, so "easy" finds one on the first
-  // exercise with no walking and no randomness.
-  const choiceExercise = await findExercise('CHOICES', 'ADDITION', 'easy');
-  // Type-in only exists at level 3+, so go hard and walk until one turns up.
-  const typedExercise = await findExercise('TYPED', 'SUBTRACTION', 'hard');
-
-  check('every exercise declares its input mode',
-    choiceExercise !== null && ['CHOICES', 'TYPED'].includes(choiceExercise.inputMode));
-  check('an easy round is entirely multiple choice', choiceExercise?.inputMode === 'CHOICES');
-  check('type-in questions appear at hard level', typedExercise !== null);
-
-  if (typedExercise) {
-    // The important one: the stored choices array contains the correct answer,
-    // so a typed exercise must not ship it.
-    check('a typed exercise ships NO choices', typedExercise.choices.length === 0,
-      `got ${JSON.stringify(typedExercise.choices)}`);
-    const wire = JSON.stringify(typedExercise);
-    check('a typed exercise leaks neither answer nor options',
-      !wire.includes('correctAnswer') && typedExercise.choices.length === 0);
-
-    const arbitrary = await call('POST', '/attempts', {
-      token: childToken,
-      body: { exerciseId: typedExercise.id, answer: 987654, responseMs: 3000, typed: true },
-      expect: 201,
-    });
-    check('a typed exercise accepts a number that was never an option',
-      arbitrary.body.correct === false && typeof arbitrary.body.correctAnswer === 'number');
+  check('every question ships exactly four options', alwaysFour);
+  // The assertion this section exists for: the browser is told neither the
+  // answer nor whether the options contain it, so it cannot give the trap away.
+  check('the payload reveals neither the answer nor whether it is among the options', neverLeaks);
+  check('trap questions occur at hard level', sawTrap);
+  check('ordinary questions still occur at hard level', sawNormal);
+  if (trapChoices) {
+    check(
+      'on a trap question the answer really is absent from the options',
+      !trapChoices.includes(trapAnswer),
+      `answer ${trapAnswer} was in ${JSON.stringify(trapChoices)}`,
+    );
   }
 
-  if (choiceExercise) {
-    const offList = choiceExercise.choices.reduce((m, c) => Math.max(m, c), 0) + 4242;
-    await call('POST', '/attempts', {
-      token: childToken,
-      body: { exerciseId: choiceExercise.id, answer: offList, responseMs: 1200 },
-      expect: 422,
-    });
-    check('a choice exercise still refuses an answer that was not offered', true);
+  const easyRound = await call('POST', '/sessions', {
+    token: childToken,
+    body: { topic: 'ADDITION', tier: 'easy' },
+    expect: 201,
+  });
+  const easyEx = easyRound.body.exercise;
+  check('an easy question also ships four options', easyEx.choices.length === 4);
 
-    const asTyped = await call('POST', '/attempts', {
-      token: childToken,
-      body: { exerciseId: choiceExercise.id, answer: offList, responseMs: 1200, typed: true },
-      expect: 201,
-    });
-    check('the same answer is accepted once the child says they typed it',
-      asTyped.body.correct === false);
-  }
+  const offList = easyEx.choices.reduce((m, c) => Math.max(m, c), 0) + 4242;
+  await call('POST', '/attempts', {
+    token: childToken,
+    body: { exerciseId: easyEx.id, answer: offList, responseMs: 1200 },
+    expect: 422,
+  });
+  check('tapping a number that was never offered is refused', true);
+
+  const typedOk = await call('POST', '/attempts', {
+    token: childToken,
+    body: { exerciseId: easyEx.id, answer: offList, responseMs: 1200, typed: true },
+    expect: 201,
+  });
+  check('the same number is accepted once it is typed', typedOk.body.correct === false);
+  check(
+    'the result reports whether the answer had been among the options',
+    typeof typedOk.body.answerWasInChoices === 'boolean',
+  );
 
   // Put addition back where the difficulty block left it.
   await call('PATCH', `/children/${childId}/levels`, {
@@ -308,6 +312,7 @@ async function main() {
     expect: 200,
   });
 
+  // -----------------------------------------------------------------------
   console.log('\nsession loop');
   const start = await call('POST', '/sessions', {
     token: childToken,
@@ -341,22 +346,14 @@ async function main() {
   let sawLevelField = false;
 
   while (exercise && answered < 10) {
-    // Must cope with both modes: a TYPED exercise has an empty choices array,
-    // so indexing into it would send `undefined` and 422.
-    const isTyped = exercise.inputMode === 'TYPED';
-    const answerValue = isTyped
-      ? answered === 0
-        ? 987654 // deliberately wrong, to exercise the hint fork
-        : exercise.operandA - exercise.operandB
-      : exercise.choices[answered % 4];
-
+    // Every exercise ships four options, so tapping one is always a valid
+    // submission — it is simply always wrong on a trap question.
     const res = await call('POST', '/attempts', {
       token: childToken,
       body: {
         exerciseId: exercise.id,
-        answer: answerValue,
+        answer: exercise.choices[answered % 4],
         responseMs: 2000 + answered * 100,
-        ...(isTyped ? { typed: true } : {}),
       },
       expect: 201,
     });
@@ -373,7 +370,6 @@ async function main() {
         // answer rather than merely asserted to be a non-empty string.
         hintAnswer = res.body.correctAnswer;
       }
-      // Replay protection.
       const replay = await call('POST', '/attempts', {
         token: childToken,
         body: { exerciseId: exercise.id, answer: exercise.choices[0] },
@@ -395,13 +391,6 @@ async function main() {
   check('at least one wrong answer was recorded', sawWrong);
   check('every attempt reported the current level', sawLevelField);
 
-  const offChoice = await call('POST', '/attempts', {
-    token: childToken,
-    body: { exerciseId: start.body.exercise.id, answer: 999999 },
-    expect: 409,
-  });
-  check('an answer outside the choices is refused', offChoice.status === 409);
-
   console.log('\nfinish');
   const result = await call('POST', `/sessions/${sessionId}/finish`, {
     token: childToken,
@@ -419,9 +408,8 @@ async function main() {
     expect: 200,
   });
   // Not pinned to 10: progress counts every attempt this child has ever made,
-  // and the typed-answer section above legitimately adds some while hunting
-  // for a type-in exercise. An assertion pinned to a constant was testing the
-  // test rather than the API.
+  // and the sections above legitimately add some. An assertion pinned to a
+  // constant was testing the test rather than the API.
   check('progress counts at least this round’s ten attempts',
     progress.body.totals.attempts >= 10, `got ${progress.body.totals.attempts}`);
   check('progress is internally consistent',
@@ -430,12 +418,12 @@ async function main() {
         progress.body.totals.attempts);
   check('fourteen zero-filled days returned', progress.body.daily.length === 14);
   check('per-topic breakdown present', progress.body.topics.length === 4);
+
   const viaParent = await call('GET', `/children/${childId}/progress`, {
     token: parentToken,
     expect: 200,
   });
-  // The point of this one is that both principals resolve to identical data,
-  // which is what "the parent can read the same progress" actually means.
+  // The point of this one is that both principals resolve to identical data.
   check('the parent sees exactly what the child sees',
     viaParent.body.totals.attempts === progress.body.totals.attempts &&
       viaParent.body.totals.correct === progress.body.totals.correct &&
@@ -448,10 +436,9 @@ async function main() {
 
   if (hintTicket) {
     console.log('\nai tutor');
-
     // Window matches the client's (~22s), because a local model on CPU-only
-    // hardware takes 10-20s. An earlier 10.5s window here made this section
-    // fail intermittently on a system that was behaving correctly.
+    // hardware takes 10-20s. A shorter window made this fail intermittently
+    // on a system that was behaving correctly.
     let ticket = null;
     for (let i = 0; i < 10; i += 1) {
       const res = await call('GET', `/hints/${hintTicket}`, { token: childToken });
@@ -466,16 +453,12 @@ async function main() {
     if (ticket?.status === 'ready') {
       console.log(`    AI hint (${ticket.hint.source}): "${ticket.hint.text}"`);
       check('the delivered hint has text', Boolean(ticket.hint.text?.trim()));
-      // The real check: the answer must not appear as a standalone number.
       const leaked =
         hintAnswer !== null &&
         new RegExp(`(^|[^0-9])${hintAnswer}([^0-9]|$)`).test(ticket.hint.text);
       check('the delivered hint does not state the answer', !leaked, `answer was ${hintAnswer}`);
       check('the hint names a teaching strategy', Boolean(ticket.hint.strategy));
     } else if (ticket?.status === 'failed') {
-      // A designed outcome, not an error: the gate rejected the output or the
-      // daemon was unreachable, and the static hint the child already has
-      // stands. Reported rather than asserted against.
       console.log(`    gate/daemon rejected it (${ticket.failure}) — static hint stands, as designed`);
     } else {
       console.log(`    still generating after 25s — static hint stands, as designed.`);

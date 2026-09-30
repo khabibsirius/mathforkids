@@ -1,15 +1,17 @@
 import { useEffect, type ReactNode } from 'react';
 
 /**
- * Number pad for typed answers.
+ * Compact number pad, shown under the four options on every question.
  *
- * A keypad rather than a text field, for two reasons. A child on a tablet gets
- * the whole screen to aim at instead of a 40px input and whatever keyboard the
- * OS decides to show; and non-numeric input becomes impossible rather than
- * merely validated, so there is no "please enter a number" error to write.
+ * Two rows of six rather than the usual phone-dialler 4x3: a dialler block is
+ * roughly 300px tall and dominated the screen when it sits below the choices
+ * rather than replacing them. This is about a third of that height and still
+ * gives every key a comfortable target.
  *
- * A physical keyboard still works, because a ten-year-old on a laptop will try
- * it and being ignored would feel broken.
+ * A keypad rather than a text field so non-numeric input is impossible rather
+ * than merely validated, and so a child on a tablet never triggers the OS
+ * keyboard over the question. A physical keyboard still works, because a
+ * ten-year-old on a laptop will try it.
  */
 export default function Keypad({
   value,
@@ -55,48 +57,50 @@ export default function Keypad({
   const ready = value.length > 0 && !disabled;
 
   return (
-    <div className="keypad-wrap">
-      <div className="keypad" role="group" aria-label="Type your answer">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-          <button
-            key={digit}
-            type="button"
-            className="key"
-            disabled={disabled}
-            onClick={() => press(digit)}
-          >
-            {digit}
-          </button>
-        ))}
-
+    <div className="keypad" role="group" aria-label="Type your answer">
+      {['1', '2', '3', '4', '5'].map((digit) => (
         <button
+          key={digit}
           type="button"
-          className="key key--del"
-          disabled={disabled || value.length === 0}
-          onClick={back}
-          aria-label="Delete the last digit"
+          className="key"
+          disabled={disabled}
+          onClick={() => press(digit)}
         >
-          <span aria-hidden="true">&#9003;</span>
+          {digit}
         </button>
+      ))}
 
-        <button type="button" className="key" disabled={disabled} onClick={() => press('0')}>
-          0
-        </button>
+      <button
+        type="button"
+        className="key key--del"
+        disabled={disabled || value.length === 0}
+        onClick={back}
+        aria-label="Delete the last digit"
+      >
+        <span aria-hidden="true">&#9003;</span>
+      </button>
 
+      {['6', '7', '8', '9', '0'].map((digit) => (
         <button
+          key={digit}
           type="button"
-          className="key key--ok"
-          disabled={!ready}
-          onClick={onSubmit}
-          aria-label="Check my answer"
+          className="key"
+          disabled={disabled}
+          onClick={() => press(digit)}
         >
-          <span aria-hidden="true">&#10003;</span>
+          {digit}
         </button>
-      </div>
+      ))}
 
-      <p className="tiny center" style={{ margin: 0 }}>
-        {ready ? 'Tap the tick when you are ready.' : 'Type the answer. Take your time.'}
-      </p>
+      <button
+        type="button"
+        className="key key--ok"
+        disabled={!ready}
+        onClick={onSubmit}
+        aria-label="Check my typed answer"
+      >
+        <span aria-hidden="true">&#10003;</span>
+      </button>
     </div>
   );
 }

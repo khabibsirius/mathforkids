@@ -45,20 +45,18 @@ export class ExerciseView {
   operandA: number;
   operandB: number;
   /**
-   * Four options, already shuffled, for a CHOICES exercise. **Empty for a
-   * TYPED one** — the stored array contains the correct answer, so shipping it
-   * would hand over exactly what the child is being asked to work out.
+   * Always four, already shuffled. On a trap exercise none of them is the
+   * answer — and nothing in this payload says so, deliberately. The child is
+   * meant to work it out and notice, and a flag here would let the browser
+   * give that away.
    */
   choices: number[];
-  /** 'CHOICES' or 'TYPED'. Decided server-side from the level and the seed. */
-  inputMode: string;
   /** Ready-made display string, e.g. "7 + 5". */
   prompt: string;
 }
 
 export function toExerciseView(exercise: Exercise): ExerciseView {
   const symbol = TOPIC_META[exercise.topic].symbol;
-  const typed = exercise.inputMode === 'TYPED';
   return {
     id: exercise.id,
     ordinal: exercise.ordinal,
@@ -67,9 +65,8 @@ export function toExerciseView(exercise: Exercise): ExerciseView {
     level: exercise.level,
     operandA: exercise.operandA,
     operandB: exercise.operandB,
-    // The second thing this function withholds, after correctAnswer.
-    choices: typed ? [] : exercise.choices,
-    inputMode: exercise.inputMode,
+    choices: exercise.choices,
+    // Withheld on purpose, alongside correctAnswer and answerInChoices.
     prompt: `${exercise.operandA} ${symbol} ${exercise.operandB}`,
   };
 }

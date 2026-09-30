@@ -23,14 +23,9 @@ enum Topic {
   DIVISION
 }
 
-/// How an exercise is answered.
-///
-/// CHOICES offers four options. TYPED offers none — the child works the answer
-/// out and enters it, so there is nothing to eliminate and nothing to guess.
-enum InputMode {
-  CHOICES
-  TYPED
-}
+// Every exercise shows four options AND a keypad, always. What varies is
+// whether the correct answer is among the options — see
+// Exercise.answerInChoices.
 
 /// The only credential in the system. A five-year-old never types a password:
 /// the parent authenticates, and choosing a child mints a scoped token.
@@ -118,14 +113,17 @@ model Exercise {
   /// Four options including the answer. Distractors are chosen, not random —
   /// each encodes a specific misconception so the tutor can address it.
   ///
-  /// Still generated for a TYPED exercise, because the distractor values are
-  /// what let the tutor name the misconception behind a wrong answer — but
-  /// never serialised for one, since the array contains the answer itself.
+  /// Always four. On a trap exercise none of them is correct.
   choices Int[]
 
-  /// Stored rather than inferred, so POST /attempts knows whether to require
-  /// the answer to be one of the choices. The client is not asked.
-  inputMode InputMode @default(CHOICES) @map("input_mode")
+  /// False on a "trap" exercise, where all four options are deliberately wrong
+  /// and the child has to work the answer out and type it.
+  ///
+  /// NEVER serialised to the client: knowing this in the browser would give
+  /// away that the options can be ignored, which is the whole point of the
+  /// exercise. It exists so grading and validation do not depend on the
+  /// client, and it is reported back only once the attempt is recorded.
+  answerInChoices Boolean @default(true) @map("answer_in_choices")
 
   /// Makes any exercise reproducible from a bug report.
   seed    Int

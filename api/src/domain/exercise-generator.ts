@@ -9,27 +9,27 @@
 
 import { clampLevel, MAX_LEVEL, TopicCode } from './topics';
 
-export type InputModeCode = 'CHOICES' | 'TYPED';
-
 /**
- * Typing is not offered below this level.
+ * Trap exercises are not used below this level.
  *
- * A five- or six-year-old reading four numbers is doing arithmetic; the same
- * child hunting for digits on a keypad is doing data entry. Recognition is the
- * right task at that age, so levels 1 and 2 are always multiple choice.
+ * Discovering that none of the options fits asks a five-year-old to hold two
+ * ideas at once — work out the answer, then notice its absence. At levels 1
+ * and 2 the answer is always among the choices.
  */
-export const TYPED_MIN_LEVEL = 3;
+export const TRAP_MIN_LEVEL = 3;
 
-/** Share of medium and hard questions that arrive as type-in. */
-export const TYPED_RATE = 0.35;
+/** Share of medium and hard questions where no option is correct. */
+export const TRAP_RATE = 0.3;
 
 /**
- * Seeded, so the presentation of a given exercise is reproducible from its
- * stored seed along with everything else about it.
+ * Whether the correct answer appears among the four options.
+ *
+ * Seeded, so this is reproducible from the exercise's stored seed along with
+ * everything else about it.
  */
-export function pickInputMode(level: number, rng: () => number): InputModeCode {
-  if (level < TYPED_MIN_LEVEL) return 'CHOICES';
-  return rng() < TYPED_RATE ? 'TYPED' : 'CHOICES';
+export function pickAnswerInChoices(level: number, rng: () => number): boolean {
+  if (level < TRAP_MIN_LEVEL) return true;
+  return rng() >= TRAP_RATE;
 }
 
 export interface GeneratedExercise {
@@ -38,10 +38,10 @@ export interface GeneratedExercise {
   operandA: number;
   operandB: number;
   correctAnswer: number;
-  /** Four options, shuffled. Index of the answer is not predictable. */
+  /** Always four, shuffled. On a trap exercise none of them is correct. */
   choices: number[];
-  /** CHOICES below level 3; a random share of harder questions are TYPED. */
-  inputMode: InputModeCode;
+  /** False on a trap exercise. Never sent to the client. */
+  answerInChoices: boolean;
   seed: number;
 }
 
@@ -257,18 +257,28 @@ export function distractorCandidates(
   }
 }
 
+/**
+ * Four options.
+ *
+ * With `includeAnswer` false this returns four plausible wrong answers and the
+ * correct one is absent — a trap exercise, where the child has to work the
+ * answer out and type it rather than recognise it. `seen` is seeded with the
+ * answer either way, so it can never slip in as a distractor.
+ */
 export function buildChoices(
   topic: TopicCode,
   a: number,
   b: number,
   answer: number,
   rng: () => number,
+  includeAnswer = true,
 ): number[] {
+  const wanted = includeAnswer ? 3 : 4;
   const chosen: number[] = [];
   const seen = new Set<number>([answer]);
 
   const accept = (value: number): void => {
-    if (chosen.length >= 3) return;
+    if (chosen.length >= wanted) return;
     if (!Number.isInteger(value) || value < 0 || seen.has(value)) return;
     seen.add(value);
     chosen.push(value);
@@ -278,12 +288,12 @@ export function buildChoices(
 
   // Top up with near misses if the pedagogical candidates collided — this
   // happens for small answers where answer-1 and |a-b| are the same number.
-  for (let delta = 2; chosen.length < 3 && delta < 40; delta += 1) {
+  for (let delta = 2; chosen.length < wanted && delta < 60; delta += 1) {
     accept(answer + delta);
     accept(answer - delta);
   }
 
-  const choices = [answer, ...chosen];
+  const choices = includeAnswer ? [answer, ...chosen] : chosen;
 
   // Fisher-Yates with the same seeded rng, so the answer's position is
   // reproducible from the seed but not guessable by a child.
@@ -306,10 +316,9 @@ export function generateExercise(
   const [operandA, operandB] = operandsFor(topic, level, rng);
   const correctAnswer = solve(topic, operandA, operandB);
 
-  // Choices are drawn before the input mode so that adding the mode did not
-  // shift the operand or distractor sequence for an existing seed.
-  const choices = buildChoices(topic, operandA, operandB, correctAnswer, rng);
-  const inputMode = pickInputMode(level, rng);
+  // Drawn before the choices, because it decides how they are built.
+  const answerInChoices = pickAnswerInChoices(level, rng);
+  const choices = buildChoices(topic, operandA, operandB, correctAnswer, rng, answerInChoices);
 
   return {
     topic,
@@ -318,7 +327,7 @@ export function generateExercise(
     operandB,
     correctAnswer,
     choices,
-    inputMode,
+    answerInChoices,
     seed,
   };
 }

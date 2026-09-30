@@ -60,7 +60,7 @@ are predicates over that series. The parent dashboard is a read model of it.
 | Four topics | `api/src/domain/topics.ts` |
 | At least 3 difficulty levels | Five in the engine, three shown to the child |
 | Interactive exercises | `web/src/screens/Play.tsx` |
-| Multiple choice **or** typed | Four options below level 3; a random share of harder questions arrive as type-in with a keypad, and "I would rather type it" is on every question |
+| Multiple choice **and** typed | Four options plus a keypad on every question; on ~30% of harder questions none of the four is correct, so the answer must be typed |
 | Correct / incorrect feedback | Immediate, with a hint on every wrong answer |
 | Score and progress tracking | XP, streak, badges, 14-day series |
 | Backend API | 17 endpoints, `/api/v1`, documented at `/api/docs` |
@@ -419,22 +419,33 @@ The brief allows multiple choice **or** typed input (*"yoki"*). Both are here,
 because four options let a child score 25% by guessing and eliminate their way
 to the rest.
 
-- **Levels 1&ndash;2 are always multiple choice.** A five-year-old reading
-  four numbers is doing arithmetic; the same child hunting for digits on a
-  keypad is doing data entry.
-- **At levels 3&ndash;5, ~35% of questions arrive as type-in** with no options
-  at all, chosen from the exercise's own seed so it stays reproducible.
-- **"I would rather type it"** sits under the choices on every question, so a
-  child who wants to work it out rather than recognise it always can.
+**Both are on screen at once, on every question, at every level** &mdash; four
+options to tap, and a keypad under them to type.
+
+- **On ~30% of Medium and Hard questions, none of the four options is
+  correct.** The child has to work the answer out and type it. Which questions
+  those are is chosen from the exercise's own seed, so it stays reproducible.
+- **Levels 1&ndash;2 never do this.** Noticing that no option fits means
+  holding two ideas at once &mdash; work out the answer, then spot its
+  absence. Not at five.
+
+Because the keypad is permanently on screen, this rewards checking rather than
+punishing guessing: the honest route is always available, so a child who works
+the answer out first is never caught. That would not be true if typing were
+hidden behind a button, which is what an earlier version of this got wrong.
 
 Two consequences that are not UI:
 
-1. **The exercise row stores its own `inputMode`.** `POST /attempts` requires
-   the answer to be one of the four stored choices, so it has to know which
-   rule applies rather than being told by the client.
-2. **A typed exercise ships an empty `choices` array.** The stored array
-   contains the correct answer, so sending it would hand over the very thing
-   being asked. `toExerciseView` now withholds two things, not one.
+1. **The exercise row stores `answerInChoices`.** A tapped answer must be one
+   of the four; a typed one may be any number, because on a trap question the
+   correct answer is deliberately absent. The API decides which rule applies
+   from the stored row rather than being told by the client.
+2. **`answerInChoices` is never serialised to the browser.** Knowing it client
+   side would give away that the options can be ignored, which is the whole
+   point of the question. It comes back only in the *attempt result*, once the
+   answer is already recorded and cannot be changed &mdash; where the interface
+   uses it to say "none of the buttons was right that time" instead of leaving
+   a child puzzled.
 
 A typed exercise still *generates* its four choices, because the distractor
 values are what let the tutor name the misconception. Typed wrong answers are
@@ -552,7 +563,7 @@ Every variable, with comments: [`.env.example`](.env.example) for Docker,
 
 ```bash
 cd api
-npm test                       # 97 unit tests over src/domain
+npm test                       # 99 unit tests over src/domain
 npm run smoke                  # 59 HTTP assertions against a running API
 npm run tutor:check            # measure the AI path and the safety gate
 ```
@@ -572,9 +583,10 @@ mocked suite cannot:
 
 ```
 ✓ the correct answer is NOT on the wire
-✓ a typed exercise ships NO choices
-✓ a typed exercise accepts a number that was never an option
-✓ a choice exercise still refuses an answer that was not offered
+✓ the payload reveals neither the answer nor whether it is among the options
+✓ on a trap question the answer really is absent from the options
+✓ tapping a number that was never offered is refused
+✓ the same number is accepted once it is typed
 ✓ unknown email gives the SAME error as a wrong password (no enumeration)
 ✓ a refresh token cannot be used as a bearer token
 ✓ another parent cannot read this child (IDOR)

@@ -71,9 +71,6 @@ export interface Topic {
   tiers: TierOption[];
 }
 
-/** CHOICES offers four options; TYPED offers none and expects a number. */
-export type InputMode = 'CHOICES' | 'TYPED';
-
 export interface Exercise {
   id: string;
   ordinal: number;
@@ -82,9 +79,12 @@ export interface Exercise {
   level: number;
   operandA: number;
   operandB: number;
-  /** Empty for a TYPED exercise — the server withholds them deliberately. */
+  /**
+   * Always four. On some questions none of them is correct — and nothing here
+   * says which, deliberately: the server withholds that so the browser cannot
+   * give away that the options can be ignored.
+   */
   choices: number[];
-  inputMode: InputMode;
   prompt: string;
 }
 
@@ -120,6 +120,8 @@ export interface AttemptResult {
   xpEarned: number;
   combo: number;
   hint: Hint | null;
+  /** False when none of the four options was correct. Only known afterwards. */
+  answerWasInChoices: boolean;
   progress: { answered: number; of: number; correct: number };
   level: { current: number; changed: 'up' | 'down' | 'hold' };
 }

@@ -5,10 +5,9 @@ export class SubmitAttemptDto {
   exerciseId: string;
 
   /**
-   * For a CHOICES exercise this must be one of the four options served, unless
-   * `typed` says the child chose to type instead. For a TYPED exercise any
-   * number in range is accepted — the whole point is that there was nothing to
-   * pick from.
+   * A tapped answer must be one of the four options served. A typed answer may
+   * be any number in range, because on a trap question the correct answer is
+   * deliberately not among the options.
    */
   @IsInt()
   @Min(0)
@@ -58,6 +57,14 @@ export class AttemptResultView {
   /** Consecutive correct answers including this one. */
   combo: number;
   hint: HintView | null;
+  /**
+   * False when none of the four options was correct.
+   *
+   * Only ever sent AFTER the attempt is recorded, so it cannot be used to
+   * shortcut the question. The interface uses it to explain what happened
+   * rather than leaving a child wondering why every option was wrong.
+   */
+  answerWasInChoices: boolean;
   progress: { answered: number; of: number; correct: number };
   level: { current: number; changed: 'up' | 'down' | 'hold' };
 }

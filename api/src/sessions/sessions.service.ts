@@ -202,7 +202,7 @@ export class SessionsService {
         // Written here, read back by POST /attempts, never serialised out.
         correctAnswer: generated.correctAnswer,
         choices: generated.choices,
-        inputMode: generated.inputMode,
+        answerInChoices: generated.answerInChoices,
         seed,
         ordinal,
       },
