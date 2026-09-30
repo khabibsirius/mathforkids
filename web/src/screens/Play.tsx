@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, ApiError, awaitTutorHint, session } from '../api/client';
 import { isTier } from '../api/types';
 import type { AttemptResult, Exercise, SessionResult, TopicCode, TutorHint } from '../api/types';
+import Keypad from '../components/Keypad';
 import { Avatar, Dots, Loading, Notice, Speak, Stat, TopBar } from '../components/ui';
 
 /** One gentle nudge, then nothing. Never ends the turn, never costs points. */
@@ -24,6 +25,9 @@ export default function Play() {
   const [targetCount, setTargetCount] = useState(10);
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
+  const [typedValue, setTypedValue] = useState('');
+  /** Set when the child taps "I would rather type it" on a choice question. */
+  const [switchedToTyping, setSwitchedToTyping] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [tutorHint, setTutorHint] = useState<TutorHint | null>(null);
   const [history, setHistory] = useState<('right' | 'wrong')[]>([]);
@@ -35,6 +39,14 @@ export default function Play() {
   const shownAt = useRef<number>(Date.now());
   const started = useRef(false);
 
+  /**
+   * Typing is used either because the server served a TYPED exercise — which
+   * arrives with no choices at all — or because the child asked to type on a
+   * choice question. There is no way back from a TYPED one, because there are
+   * no options to return to.
+   */
+  const usingKeypad = exercise !== null && (exercise.inputMode === 'TYPED' || switchedToTyping);
+
   // --- start (or restart) the round ---------------------------------------
   const begin = useCallback((): void => {
     setPhase('loading');
@@ -43,6 +55,8 @@ export default function Play() {
     setResult(null);
     setTutorHint(null);
     setChosen(null);
+    setTypedValue('');
+    setSwitchedToTyping(false);
     setHistory([]);
     setSummary(null);
     setError(null);
@@ -78,6 +92,8 @@ export default function Play() {
     setTutorHint(null);
     setResult(null);
     setChosen(null);
+    setTypedValue('');
+    setSwitchedToTyping(false);
 
     try {
       const next = await api.nextExercise(sessionId);
@@ -117,14 +133,16 @@ export default function Play() {
   }, [nudge]);
 
   // --- answer -------------------------------------------------------------
-  const answer = async (choice: number): Promise<void> => {
+  const answer = async (value: number, typed: boolean): Promise<void> => {
     if (phase !== 'question' || !exercise || busy) return;
+    if (!Number.isFinite(value)) return;
+
     setBusy(true);
-    setChosen(choice);
+    if (!typed) setChosen(value);
     setNudge(false);
 
     try {
-      const res = await api.submit(exercise.id, choice, Date.now() - shownAt.current);
+      const res = await api.submit(exercise.id, value, Date.now() - shownAt.current, typed);
       setResult(res);
       setHistory((h) => [...h, res.correct ? 'right' : 'wrong']);
       setPhase('feedback');
@@ -138,7 +156,7 @@ export default function Play() {
         });
       }
     } catch (err) {
-      setChosen(null);
+      if (!typed) setChosen(null);
       setError(err instanceof ApiError ? err.kidMessage : 'That did not send. Try again.');
     } finally {
       setBusy(false);
@@ -267,10 +285,21 @@ export default function Play() {
         <div className="question">
           <p className="tiny" style={{ marginTop: 0 }}>
             Question {Math.min(history.length + 1, targetCount)} of {targetCount}
+            {usingKeypad ? ' · type the answer' : ''}
           </p>
           <div className="question__sum">
             {exercise.operandA} <em aria-label={exercise.topic.toLowerCase()}>{exercise.symbol}</em>{' '}
-            {exercise.operandB} <span className="question__blank">= ?</span>
+            {exercise.operandB}{' '}
+            {usingKeypad ? (
+              <span className="question__blank">
+                ={' '}
+                <span className={typedValue ? 'typed-slot' : 'typed-slot typed-slot--empty'}>
+                  {typedValue || '?'}
+                </span>
+              </span>
+            ) : (
+              <span className="question__blank">= ?</span>
+            )}
           </div>
           <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
             <Speak
@@ -281,19 +310,47 @@ export default function Play() {
           </div>
         </div>
 
-        <div className={nudge ? 'choices choices--nudge' : 'choices'}>
-          {exercise.choices.map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              className={choiceClass(choice)}
-              disabled={phase === 'feedback' || busy}
-              onClick={() => void answer(choice)}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
+        {usingKeypad ? (
+          <Keypad
+            value={typedValue}
+            onChange={setTypedValue}
+            onSubmit={() => void answer(Number(typedValue), true)}
+            disabled={phase !== 'question' || busy}
+          />
+        ) : (
+          <>
+            <div className={nudge ? 'choices choices--nudge' : 'choices'}>
+              {exercise.choices.map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  className={choiceClass(choice)}
+                  disabled={phase === 'feedback' || busy}
+                  onClick={() => void answer(choice, false)}
+                >
+                  {choice}
+                </button>
+              ))}
+            </div>
+
+            {/* Always available, never the loud option: a child who would
+                rather work it out than recognise it can, on any question. */}
+            {phase === 'question' ? (
+              <div className="switch-input">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    setSwitchedToTyping(true);
+                    setTypedValue('');
+                  }}
+                >
+                  I would rather type it
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
 
         <div aria-live="polite">
           {phase === 'feedback' && result ? (

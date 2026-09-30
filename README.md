@@ -60,7 +60,7 @@ are predicates over that series. The parent dashboard is a read model of it.
 | Four topics | `api/src/domain/topics.ts` |
 | At least 3 difficulty levels | Five in the engine, three shown to the child |
 | Interactive exercises | `web/src/screens/Play.tsx` |
-| Multiple choice | Four options, distractors chosen pedagogically |
+| Multiple choice **or** typed | Four options below level 3; a random share of harder questions arrive as type-in with a keypad, and "I would rather type it" is on every question |
 | Correct / incorrect feedback | Immediate, with a hint on every wrong answer |
 | Score and progress tracking | XP, streak, badges, 14-day series |
 | Backend API | 17 endpoints, `/api/v1`, documented at `/api/docs` |
@@ -413,6 +413,41 @@ makes the tutor hint targetable: the prompt can say *"it looks like they
 subtracted instead of adding"* rather than re-explaining addition. A random
 number between 1 and 20 is eliminated on sight and teaches nobody anything.
 
+### Typing the answer
+
+The brief allows multiple choice **or** typed input (*"yoki"*). Both are here,
+because four options let a child score 25% by guessing and eliminate their way
+to the rest.
+
+- **Levels 1&ndash;2 are always multiple choice.** A five-year-old reading
+  four numbers is doing arithmetic; the same child hunting for digits on a
+  keypad is doing data entry.
+- **At levels 3&ndash;5, ~35% of questions arrive as type-in** with no options
+  at all, chosen from the exercise's own seed so it stays reproducible.
+- **"I would rather type it"** sits under the choices on every question, so a
+  child who wants to work it out rather than recognise it always can.
+
+Two consequences that are not UI:
+
+1. **The exercise row stores its own `inputMode`.** `POST /attempts` requires
+   the answer to be one of the four stored choices, so it has to know which
+   rule applies rather than being told by the client.
+2. **A typed exercise ships an empty `choices` array.** The stored array
+   contains the correct answer, so sending it would hand over the very thing
+   being asked. `toExerciseView` now withholds two things, not one.
+
+A typed exercise still *generates* its four choices, because the distractor
+values are what let the tutor name the misconception. Typed wrong answers are
+in fact richer evidence: the child is not funnelled into four pre-chosen
+mistakes, and `diagnose()` compares arithmetically so it handles any number.
+Attempts record `typed`, since a typed correct answer is stronger evidence of
+mastery than a tapped one &mdash; there was nothing to eliminate.
+
+Input is a keypad rather than a text field: a child on a tablet gets the whole
+screen to aim at instead of a 40px input and whatever keyboard the OS offers,
+and non-numeric input becomes impossible rather than merely validated. A
+physical keyboard still works, because a ten-year-old on a laptop will try it.
+
 ---
 
 ## Designing for five-year-olds
@@ -517,8 +552,8 @@ Every variable, with comments: [`.env.example`](.env.example) for Docker,
 
 ```bash
 cd api
-npm test                       # 89 unit tests over src/domain
-npm run smoke                  # 52 HTTP assertions against a running API
+npm test                       # 97 unit tests over src/domain
+npm run smoke                  # 59 HTTP assertions against a running API
 npm run tutor:check            # measure the AI path and the safety gate
 ```
 
@@ -537,6 +572,9 @@ mocked suite cannot:
 
 ```
 ✓ the correct answer is NOT on the wire
+✓ a typed exercise ships NO choices
+✓ a typed exercise accepts a number that was never an option
+✓ a choice exercise still refuses an answer that was not offered
 ✓ unknown email gives the SAME error as a wrong password (no enumeration)
 ✓ a refresh token cannot be used as a bearer token
 ✓ another parent cannot read this child (IDOR)

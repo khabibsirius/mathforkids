@@ -9,6 +9,29 @@
 
 import { clampLevel, MAX_LEVEL, TopicCode } from './topics';
 
+export type InputModeCode = 'CHOICES' | 'TYPED';
+
+/**
+ * Typing is not offered below this level.
+ *
+ * A five- or six-year-old reading four numbers is doing arithmetic; the same
+ * child hunting for digits on a keypad is doing data entry. Recognition is the
+ * right task at that age, so levels 1 and 2 are always multiple choice.
+ */
+export const TYPED_MIN_LEVEL = 3;
+
+/** Share of medium and hard questions that arrive as type-in. */
+export const TYPED_RATE = 0.35;
+
+/**
+ * Seeded, so the presentation of a given exercise is reproducible from its
+ * stored seed along with everything else about it.
+ */
+export function pickInputMode(level: number, rng: () => number): InputModeCode {
+  if (level < TYPED_MIN_LEVEL) return 'CHOICES';
+  return rng() < TYPED_RATE ? 'TYPED' : 'CHOICES';
+}
+
 export interface GeneratedExercise {
   topic: TopicCode;
   level: number;
@@ -17,6 +40,8 @@ export interface GeneratedExercise {
   correctAnswer: number;
   /** Four options, shuffled. Index of the answer is not predictable. */
   choices: number[];
+  /** CHOICES below level 3; a random share of harder questions are TYPED. */
+  inputMode: InputModeCode;
   seed: number;
 }
 
@@ -281,13 +306,19 @@ export function generateExercise(
   const [operandA, operandB] = operandsFor(topic, level, rng);
   const correctAnswer = solve(topic, operandA, operandB);
 
+  // Choices are drawn before the input mode so that adding the mode did not
+  // shift the operand or distractor sequence for an existing seed.
+  const choices = buildChoices(topic, operandA, operandB, correctAnswer, rng);
+  const inputMode = pickInputMode(level, rng);
+
   return {
     topic,
     level: Math.min(level, MAX_LEVEL),
     operandA,
     operandB,
     correctAnswer,
-    choices: buildChoices(topic, operandA, operandB, correctAnswer, rng),
+    choices,
+    inputMode,
     seed,
   };
 }

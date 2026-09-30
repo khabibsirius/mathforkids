@@ -44,14 +44,21 @@ export class ExerciseView {
   level: number;
   operandA: number;
   operandB: number;
-  /** Four options, already shuffled. Order is stable for this exercise. */
+  /**
+   * Four options, already shuffled, for a CHOICES exercise. **Empty for a
+   * TYPED one** — the stored array contains the correct answer, so shipping it
+   * would hand over exactly what the child is being asked to work out.
+   */
   choices: number[];
+  /** 'CHOICES' or 'TYPED'. Decided server-side from the level and the seed. */
+  inputMode: string;
   /** Ready-made display string, e.g. "7 + 5". */
   prompt: string;
 }
 
 export function toExerciseView(exercise: Exercise): ExerciseView {
   const symbol = TOPIC_META[exercise.topic].symbol;
+  const typed = exercise.inputMode === 'TYPED';
   return {
     id: exercise.id,
     ordinal: exercise.ordinal,
@@ -60,7 +67,9 @@ export function toExerciseView(exercise: Exercise): ExerciseView {
     level: exercise.level,
     operandA: exercise.operandA,
     operandB: exercise.operandB,
-    choices: exercise.choices,
+    // The second thing this function withholds, after correctAnswer.
+    choices: typed ? [] : exercise.choices,
+    inputMode: exercise.inputMode,
     prompt: `${exercise.operandA} ${symbol} ${exercise.operandB}`,
   };
 }

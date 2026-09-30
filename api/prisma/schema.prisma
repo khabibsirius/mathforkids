@@ -23,6 +23,15 @@ enum Topic {
   DIVISION
 }
 
+/// How an exercise is answered.
+///
+/// CHOICES offers four options. TYPED offers none — the child works the answer
+/// out and enters it, so there is nothing to eliminate and nothing to guess.
+enum InputMode {
+  CHOICES
+  TYPED
+}
+
 /// The only credential in the system. A five-year-old never types a password:
 /// the parent authenticates, and choosing a child mints a scoped token.
 model Parent {
@@ -108,7 +117,15 @@ model Exercise {
 
   /// Four options including the answer. Distractors are chosen, not random —
   /// each encodes a specific misconception so the tutor can address it.
+  ///
+  /// Still generated for a TYPED exercise, because the distractor values are
+  /// what let the tutor name the misconception behind a wrong answer — but
+  /// never serialised for one, since the array contains the answer itself.
   choices Int[]
+
+  /// Stored rather than inferred, so POST /attempts knows whether to require
+  /// the answer to be one of the choices. The client is not asked.
+  inputMode InputMode @default(CHOICES) @map("input_mode")
 
   /// Makes any exercise reproducible from a bug report.
   seed    Int
@@ -135,6 +152,11 @@ model Attempt {
   isCorrect  Boolean  @map("is_correct")
   /// Recorded for the adaptive rule. Never shown to the child, never penalised.
   responseMs Int      @map("response_ms")
+
+  /// True when the child typed the answer rather than picking one. Worth
+  /// keeping separately: a typed correct answer is stronger evidence of
+  /// mastery than a tapped one, because nothing could be eliminated.
+  typed      Boolean  @default(false)
   hintShown  Boolean  @default(false) @map("hint_shown")
   createdAt  DateTime @default(now()) @map("created_at")
 

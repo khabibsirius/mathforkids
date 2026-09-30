@@ -1,12 +1,30 @@
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class SubmitAttemptDto {
   @IsString()
   exerciseId: string;
 
-  /** Must be one of the four choices the exercise was served with. */
+  /**
+   * For a CHOICES exercise this must be one of the four options served, unless
+   * `typed` says the child chose to type instead. For a TYPED exercise any
+   * number in range is accepted — the whole point is that there was nothing to
+   * pick from.
+   */
   @IsInt()
+  @Min(0)
+  @Max(1_000_000)
   answer: number;
+
+  /**
+   * True when the child typed rather than tapped.
+   *
+   * Only ever widens which answers are accepted, never what counts as
+   * correct — grading still re-reads the stored row — so trusting the client
+   * about it has no security consequence.
+   */
+  @IsOptional()
+  @IsBoolean()
+  typed?: boolean;
 
   /**
    * Milliseconds from question shown to answer tapped. Recorded for the

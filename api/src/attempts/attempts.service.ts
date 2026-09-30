@@ -44,7 +44,12 @@ export class AttemptsService {
     if (exercise.attempt) {
       throw new AppError('EXERCISE_ALREADY_ANSWERED', `Exercise ${exercise.id} already answered`);
     }
-    if (!exercise.choices.includes(dto.answer)) {
+    // A TYPED exercise was served without choices, so requiring membership
+    // would reject every legitimate answer. A CHOICES exercise still enforces
+    // it unless the child opted into typing, which catches a malformed client
+    // without getting in a child's way.
+    const typed = dto.typed === true || exercise.inputMode === 'TYPED';
+    if (!typed && !exercise.choices.includes(dto.answer)) {
       throw new AppError('ANSWER_NOT_A_CHOICE', `${dto.answer} was not one of the options`, {
         choices: exercise.choices,
       });
@@ -90,6 +95,7 @@ export class AttemptsService {
           submitted: dto.answer,
           isCorrect,
           responseMs,
+          typed,
           // A hint is shown whenever the answer is wrong.
           hintShown: !isCorrect,
         },

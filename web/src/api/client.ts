@@ -262,10 +262,19 @@ export const api = {
     return request<NextExercise>(`/sessions/${sessionId}/next`, { as: 'child' });
   },
 
-  submit(exerciseId: string, answer: number, responseMs: number): Promise<AttemptResult> {
+  /**
+   * `typed` only widens which answers the API will accept; it never affects
+   * what counts as correct, which is re-read from the stored exercise row.
+   */
+  submit(
+    exerciseId: string,
+    answer: number,
+    responseMs: number,
+    typed = false,
+  ): Promise<AttemptResult> {
     return request<AttemptResult>('/attempts', {
       method: 'POST',
-      body: { exerciseId, answer, responseMs },
+      body: { exerciseId, answer, responseMs, typed },
       as: 'child',
     });
   },

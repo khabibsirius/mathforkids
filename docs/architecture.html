@@ -978,6 +978,15 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
 
   <h3>Distractors are pedagogy, not noise</h3>
   <p>Three wrong choices per question, and they are chosen, not randomised. For <code>7 + 5</code> the distractors are <strong>11</strong> (off by one, a counting slip), <strong>2</strong> (the subtraction result &mdash; wrong operation), and <strong>13</strong> (off by one the other way). Each wrong answer therefore identifies a specific misconception, which is what makes the tutor hint targetable: the model is told which distractor was chosen, and can address <em>that</em> error rather than re-explaining addition from scratch. A random number between 1 and 20 would be eliminated on sight and teach nobody anything.</p>
+
+  <h3>Typing, not only picking</h3>
+  <p>The brief allows multiple choice <em>or</em> typed input. Both are here, because four options let a child score 25% by guessing and eliminate their way to the rest. Levels 1&ndash;2 stay multiple choice &mdash; a five-year-old reading four numbers is doing arithmetic, while the same child hunting for digits is doing data entry. At levels 3&ndash;5 roughly a third of questions arrive as type-in with no options at all, drawn from the exercise's own seed so the presentation is as reproducible as the numbers. A quiet &ldquo;I would rather type it&rdquo; sits under the choices on every question.</p>
+
+  <div class="note stop">
+    <span class="note-h">Why this is not a UI change</span>
+    <p>Two things had to move server-side. The exercise row now stores its own <code>inputMode</code>, because <code>POST /attempts</code> requires the answer to be one of the four stored choices and must decide which rule applies without being told by the client. And a typed exercise ships an <strong>empty</strong> <code>choices</code> array &mdash; the stored array contains the correct answer, so sending it would hand over exactly what the child is being asked to work out. <code>toExerciseView</code> now withholds two things rather than one.</p>
+    <p>The choices are still <em>generated</em> for a typed exercise, because the distractor values are what let the tutor name the misconception. Typed wrong answers are richer evidence than tapped ones: the child is not funnelled into four pre-chosen mistakes.</p>
+  </div>
 </section>
 
 <!-- ============ 8 ============ -->

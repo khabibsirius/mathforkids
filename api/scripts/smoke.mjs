@@ -216,6 +216,98 @@ async function main() {
   });
   check('a child cannot set their own level through the parent route', true);
 
+  console.log('\ntyped answers');
+  /**
+   * Opens a round and walks forward until it finds an exercise in the wanted
+   * mode, answering the ones it passes over, and returns that one UNANSWERED.
+   *
+   * One session per mode, because GET /next is idempotent while an exercise is
+   * outstanding: an exercise cannot be both kept for assertions and walked
+   * past. An earlier version of this tried and asserted against an exercise it
+   * had already answered, which showed up as 409 where 422 was expected.
+   */
+  async function findExercise(wantMode, topic, tier) {
+    const opened = await call('POST', '/sessions', {
+      token: childToken,
+      body: { topic, tier },
+      expect: 201,
+    });
+    let ex = opened.body.exercise;
+    for (let i = 0; i < 12 && ex; i += 1) {
+      if (ex.inputMode === wantMode) return ex;
+      await call('POST', '/attempts', {
+        token: childToken,
+        body: {
+          exerciseId: ex.id,
+          answer: ex.inputMode === 'TYPED' ? 0 : ex.choices[0],
+          responseMs: 1200,
+          ...(ex.inputMode === 'TYPED' ? { typed: true } : {}),
+        },
+        expect: 201,
+      });
+      const nxt = await call('GET', `/sessions/${opened.body.sessionId}/next`, {
+        token: childToken,
+        expect: 200,
+      });
+      ex = nxt.body.done ? null : nxt.body.exercise;
+    }
+    return null;
+  }
+
+  // Levels 1-2 are always multiple choice, so "easy" finds one on the first
+  // exercise with no walking and no randomness.
+  const choiceExercise = await findExercise('CHOICES', 'ADDITION', 'easy');
+  // Type-in only exists at level 3+, so go hard and walk until one turns up.
+  const typedExercise = await findExercise('TYPED', 'SUBTRACTION', 'hard');
+
+  check('every exercise declares its input mode',
+    choiceExercise !== null && ['CHOICES', 'TYPED'].includes(choiceExercise.inputMode));
+  check('an easy round is entirely multiple choice', choiceExercise?.inputMode === 'CHOICES');
+  check('type-in questions appear at hard level', typedExercise !== null);
+
+  if (typedExercise) {
+    // The important one: the stored choices array contains the correct answer,
+    // so a typed exercise must not ship it.
+    check('a typed exercise ships NO choices', typedExercise.choices.length === 0,
+      `got ${JSON.stringify(typedExercise.choices)}`);
+    const wire = JSON.stringify(typedExercise);
+    check('a typed exercise leaks neither answer nor options',
+      !wire.includes('correctAnswer') && typedExercise.choices.length === 0);
+
+    const arbitrary = await call('POST', '/attempts', {
+      token: childToken,
+      body: { exerciseId: typedExercise.id, answer: 987654, responseMs: 3000, typed: true },
+      expect: 201,
+    });
+    check('a typed exercise accepts a number that was never an option',
+      arbitrary.body.correct === false && typeof arbitrary.body.correctAnswer === 'number');
+  }
+
+  if (choiceExercise) {
+    const offList = choiceExercise.choices.reduce((m, c) => Math.max(m, c), 0) + 4242;
+    await call('POST', '/attempts', {
+      token: childToken,
+      body: { exerciseId: choiceExercise.id, answer: offList, responseMs: 1200 },
+      expect: 422,
+    });
+    check('a choice exercise still refuses an answer that was not offered', true);
+
+    const asTyped = await call('POST', '/attempts', {
+      token: childToken,
+      body: { exerciseId: choiceExercise.id, answer: offList, responseMs: 1200, typed: true },
+      expect: 201,
+    });
+    check('the same answer is accepted once the child says they typed it',
+      asTyped.body.correct === false);
+  }
+
+  // Put addition back where the difficulty block left it.
+  await call('PATCH', `/children/${childId}/levels`, {
+    token: parentToken,
+    body: { topic: 'ADDITION', level: 2 },
+    expect: 200,
+  });
+
   console.log('\nsession loop');
   const start = await call('POST', '/sessions', {
     token: childToken,
@@ -249,16 +341,22 @@ async function main() {
   let sawLevelField = false;
 
   while (exercise && answered < 10) {
-    // Answer the first question wrong on purpose, to exercise the hint fork.
-    const wrong = exercise.choices.find((c) => c !== undefined);
-    const deliberate = answered === 0 ? wrong : null;
+    // Must cope with both modes: a TYPED exercise has an empty choices array,
+    // so indexing into it would send `undefined` and 422.
+    const isTyped = exercise.inputMode === 'TYPED';
+    const answerValue = isTyped
+      ? answered === 0
+        ? 987654 // deliberately wrong, to exercise the hint fork
+        : exercise.operandA - exercise.operandB
+      : exercise.choices[answered % 4];
 
     const res = await call('POST', '/attempts', {
       token: childToken,
       body: {
         exerciseId: exercise.id,
-        answer: deliberate ?? exercise.choices[answered % 4],
+        answer: answerValue,
         responseMs: 2000 + answered * 100,
+        ...(isTyped ? { typed: true } : {}),
       },
       expect: 201,
     });
@@ -320,14 +418,28 @@ async function main() {
     token: childToken,
     expect: 200,
   });
-  check('progress totals match the session', progress.body.totals.attempts === 10);
+  // Not pinned to 10: progress counts every attempt this child has ever made,
+  // and the typed-answer section above legitimately adds some while hunting
+  // for a type-in exercise. An assertion pinned to a constant was testing the
+  // test rather than the API.
+  check('progress counts at least this round’s ten attempts',
+    progress.body.totals.attempts >= 10, `got ${progress.body.totals.attempts}`);
+  check('progress is internally consistent',
+    progress.body.totals.correct <= progress.body.totals.attempts &&
+      progress.body.topics.reduce((sum, t) => sum + t.attempts, 0) ===
+        progress.body.totals.attempts);
   check('fourteen zero-filled days returned', progress.body.daily.length === 14);
   check('per-topic breakdown present', progress.body.topics.length === 4);
   const viaParent = await call('GET', `/children/${childId}/progress`, {
     token: parentToken,
     expect: 200,
   });
-  check('the parent can read the same progress', viaParent.body.totals.attempts === 10);
+  // The point of this one is that both principals resolve to identical data,
+  // which is what "the parent can read the same progress" actually means.
+  check('the parent sees exactly what the child sees',
+    viaParent.body.totals.attempts === progress.body.totals.attempts &&
+      viaParent.body.totals.correct === progress.body.totals.correct &&
+      viaParent.body.child.id === progress.body.child.id);
   await call('GET', `/children/${childId}/progress`, {
     token: other.body.accessToken,
     expect: 403,

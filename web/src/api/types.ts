@@ -71,6 +71,9 @@ export interface Topic {
   tiers: TierOption[];
 }
 
+/** CHOICES offers four options; TYPED offers none and expects a number. */
+export type InputMode = 'CHOICES' | 'TYPED';
+
 export interface Exercise {
   id: string;
   ordinal: number;
@@ -79,7 +82,9 @@ export interface Exercise {
   level: number;
   operandA: number;
   operandB: number;
+  /** Empty for a TYPED exercise — the server withholds them deliberately. */
   choices: number[];
+  inputMode: InputMode;
   prompt: string;
 }
 
