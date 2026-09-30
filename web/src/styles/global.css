@@ -1,0 +1,769 @@
+/*
+ * Kids Math Learning — interface styles.
+ *
+ * Committed to a single bright look rather than following the OS theme: this
+ * is a children's game, and a five-year-old on a parent's dark-mode tablet
+ * should still get the daylight version. color-scheme is pinned so form
+ * controls do not darken underneath us.
+ *
+ * Sizing rules that are product decisions, not taste:
+ *   - answer buttons are at least 88px tall. Small hands mis-tap, and a
+ *     mis-tap recorded as a wrong answer corrupts the adaptive data as well
+ *     as the child's mood.
+ *   - the question is set in a display face at a size that reads across a
+ *     room, because a parent is often sitting next to the child.
+ *   - nothing anywhere shows elapsed time.
+ */
+
+:root {
+  color-scheme: light;
+
+  --paper: #f3f6fb;
+  --surface: #ffffff;
+  --surface-sunk: #e9eef7;
+  --ink: #1e2a44;
+  --ink-soft: #5a6b8c;
+  --ink-faint: #8b9bb8;
+  --rule: #d5deec;
+
+  --blue: #2b4fc7;
+  --blue-dark: #1e3a9e;
+  --blue-soft: #e3eafc;
+
+  --green: #18a05b;
+  --green-soft: #ddf4e7;
+  --amber: #f0a92c;
+  --amber-soft: #fdf0d6;
+  --coral: #e8735a;
+  --coral-soft: #fceae6;
+  --violet: #7b5bd6;
+  --violet-soft: #ece6fb;
+
+  --display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --shadow: 0 2px 0 rgba(30, 42, 68, 0.08), 0 8px 24px rgba(30, 42, 68, 0.06);
+  --shadow-lift: 0 4px 0 rgba(30, 42, 68, 0.1), 0 14px 32px rgba(30, 42, 68, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.shell {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-inline: 18px;
+  padding-block: 20px 56px;
+}
+
+.shell--wide {
+  max-width: 1080px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.tiny {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------- topbar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 6px 18px;
+}
+
+.brand {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.brand span {
+  letter-spacing: 3px;
+  font-size: 15px;
+  color: var(--ink-faint);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  box-shadow: var(--shadow);
+}
+
+/* ---------------------------------------------------------------- avatar */
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: var(--blue-soft);
+  flex: none;
+}
+
+.avatar--lg {
+  width: 76px;
+  height: 76px;
+  font-size: 40px;
+}
+
+/* --------------------------------------------------------------- buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  min-height: 40px;
+  padding: 6px 10px;
+  font-family: var(--body);
+  font-weight: 600;
+}
+
+.btn--big {
+  min-height: 64px;
+  font-size: 20px;
+  padding-inline: 32px;
+}
+
+/* ----------------------------------------------------------------- forms */
+
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'] {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 2px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+input:focus {
+  border-color: var(--blue);
+  outline: none;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.notice {
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.notice--bad {
+  background: var(--coral-soft);
+  color: #a13a26;
+}
+
+.notice--info {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+/* ------------------------------------------------------------ pick cards */
+
+.pick-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.pick {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  min-height: 150px;
+  justify-content: center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  border: 3px solid transparent;
+}
+
+.pick:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--blue-soft);
+}
+
+.pick__name {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 19px;
+}
+
+/* Topic tiles carry the operator big, because that is what a pre-reader
+   recognises the topic by. */
+.topic__symbol {
+  font-family: var(--display);
+  font-size: 46px;
+  line-height: 1;
+  width: 74px;
+  height: 74px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.topic--add .topic__symbol {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.topic--sub .topic__symbol {
+  background: var(--amber-soft);
+  color: #a8700c;
+}
+.topic--mul .topic__symbol {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+.topic--div .topic__symbol {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.tier {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------------ play */
+
+.play {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dots {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Ten dots, not a percentage. Under-eights do not read percentages. */
+.dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--surface-sunk);
+  flex: none;
+}
+
+.dot--right {
+  background: var(--green);
+}
+
+.dot--wrong {
+  background: var(--amber);
+}
+
+.dot--now {
+  background: var(--blue);
+  box-shadow: 0 0 0 4px var(--blue-soft);
+}
+
+.question {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.question__sum {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(48px, 15vw, 88px);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.question__sum em {
+  font-style: normal;
+  color: var(--blue);
+  padding-inline: 6px;
+}
+
+.question__blank {
+  color: var(--ink-faint);
+}
+
+.choices {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.choice {
+  min-height: 88px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(28px, 7vw, 40px);
+  font-variant-numeric: tabular-nums;
+  border: 3px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.choice:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--blue-soft);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+/* Right is loud. Wrong is quiet: the chosen tile just settles back and the
+   correct one lights up. No red flash, no X, no buzzer. */
+.choice--right {
+  background: var(--green-soft);
+  border-color: var(--green);
+  color: #0d6b3c;
+}
+
+.choice--chosen-wrong {
+  background: var(--surface-sunk);
+  border-color: var(--rule);
+  color: var(--ink-faint);
+}
+
+.choice--dimmed {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .choice--right {
+    animation: pop 0.34s ease;
+  }
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.06);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* The idle nudge: after 45 seconds the choices wiggle once. It never ends
+     the turn and never costs points. */
+  .choices--nudge .choice {
+    animation: wiggle 0.6s ease;
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+}
+
+.feedback {
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback--right {
+  background: var(--green-soft);
+  color: #0d6b3c;
+}
+
+.feedback--wrong {
+  background: var(--amber-soft);
+  color: #8a5c05;
+}
+
+.feedback__title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 22px;
+}
+
+.hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.hint__mark {
+  font-size: 20px;
+  flex: none;
+}
+
+.hint__swap {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--violet);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.xp-pop {
+  font-family: var(--display);
+  font-weight: 800;
+  color: var(--green);
+}
+
+/* --------------------------------------------------------------- results */
+
+.result-hero {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.result-hero__score {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(54px, 16vw, 92px);
+  line-height: 1;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.badge {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.badge__emoji {
+  font-size: 28px;
+}
+
+.badge__name {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.stat-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+}
+
+.stat {
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+  padding: 12px;
+  text-align: center;
+}
+
+.stat__value {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------ parent view */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 460px;
+  font-size: 15px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+th {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  overflow: hidden;
+  min-width: 70px;
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+/* --------------------------------------------------------------- utility */
+
+.center {
+  text-align: center;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 50vh;
+  color: var(--ink-soft);
+  gap: 12px;
+}
+
+@media (max-width: 420px) {
+  .choices {
+    gap: 11px;
+  }
+  .choice {
+    min-height: 78px;
+  }
+}

@@ -1,0 +1,192 @@
+// Kids Math Learning — data model
+//
+// One commitment shapes everything here: ATTEMPTS ARE FACTS, and everything
+// else is either reference data or a projection of those facts. Accuracy,
+// streaks, XP by day, per-topic mastery and every chart in the parent view are
+// queries over `attempts`. Only two values are cached (children.xp_total and
+// child_topic_levels.level) because they are read on every request in the
+// session loop — and both can be rebuilt from the log.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Topic {
+  ADDITION
+  SUBTRACTION
+  MULTIPLICATION
+  DIVISION
+}
+
+/// The only credential in the system. A five-year-old never types a password:
+/// the parent authenticates, and choosing a child mints a scoped token.
+model Parent {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  children Child[]
+
+  @@map("parents")
+}
+
+model Child {
+  id             String    @id @default(uuid())
+  parentId       String    @map("parent_id")
+  name           String
+  age            Int
+  avatar         String    @default("fox")
+  /// Cached projection of the attempt log — rebuildable, never authoritative.
+  xpTotal        Int       @default(0) @map("xp_total")
+  currentStreak  Int       @default(0) @map("current_streak")
+  longestStreak  Int       @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  parent      Parent            @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  topicLevels ChildTopicLevel[]
+  sessions    Session[]
+  attempts    Attempt[]
+  badges      ChildBadge[]
+
+  @@index([parentId])
+  @@map("children")
+}
+
+/// Difficulty is a property of (child, topic), not of the child. A child can be
+/// fluent in addition and lost in division; one global level mis-serves both.
+model ChildTopicLevel {
+  childId         String   @map("child_id")
+  topic           Topic
+  level           Int      @default(1)
+  /// Guards against oscillation: the adaptive rule will not move a level until
+  /// the child has done at least 5 attempts at the current one.
+  attemptsAtLevel Int      @default(0) @map("attempts_at_level")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@id([childId, topic])
+  @@map("child_topic_levels")
+}
+
+model Session {
+  id          String    @id @default(uuid())
+  childId     String    @map("child_id")
+  topic       Topic
+  targetCount Int       @default(10) @map("target_count")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  /// Null means in progress. An abandoned session simply never gets an end.
+  endedAt     DateTime? @map("ended_at")
+  xpEarned    Int       @default(0) @map("xp_earned")
+
+  child     Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@index([childId, startedAt])
+  @@map("sessions")
+}
+
+model Exercise {
+  id String @id @default(uuid())
+
+  sessionId String @map("session_id")
+  topic     Topic
+  level     Int
+  operandA  Int    @map("operand_a")
+  operandB  Int    @map("operand_b")
+
+  /// NEVER serialised to the client. The response DTO carries operands and
+  /// choices only; POST /attempts grades by re-reading this column.
+  correctAnswer Int @map("correct_answer")
+
+  /// Four options including the answer. Distractors are chosen, not random —
+  /// each encodes a specific misconception so the tutor can address it.
+  choices Int[]
+
+  /// Makes any exercise reproducible from a bug report.
+  seed    Int
+  ordinal Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attempt Attempt?
+
+  @@unique([sessionId, ordinal])
+  @@map("exercises")
+}
+
+/// Append-only. The unique constraint on exercise_id is what makes a replayed
+/// submission a 409 at the database level rather than a race in the service.
+model Attempt {
+  id         String   @id @default(uuid())
+  exerciseId String   @unique @map("exercise_id")
+  childId    String   @map("child_id")
+  topic      Topic
+  level      Int
+  submitted  Int
+  isCorrect  Boolean  @map("is_correct")
+  /// Recorded for the adaptive rule. Never shown to the child, never penalised.
+  responseMs Int      @map("response_ms")
+  hintShown  Boolean  @default(false) @map("hint_shown")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, topic, createdAt])
+  @@index([childId, createdAt])
+  @@map("attempts")
+}
+
+/// Seeded reference data, not user rows.
+model Badge {
+  id          String @id @default(uuid())
+  code        String @unique
+  name        String
+  description String
+  emoji       String
+
+  children ChildBadge[]
+
+  @@map("badges")
+}
+
+model ChildBadge {
+  childId   String   @map("child_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@id([childId, badgeId])
+  @@map("child_badges")
+}
+
+/// Hint cache. Keyed on the shape of the problem plus the age band, so two
+/// children of the same age making the same mistake share one model call.
+/// Fallback output is deliberately never written here — a transient Ollama
+/// failure must not poison the cache for 24 hours.
+model TutorHint {
+  id        String   @id @default(uuid())
+  cacheKey  String   @unique @map("cache_key")
+  topic     Topic
+  level     Int
+  operandA  Int      @map("operand_a")
+  operandB  Int      @map("operand_b")
+  ageBand   String   @map("age_band")
+  hint      String
+  strategy  String
+  model     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tutor_hints")
+}

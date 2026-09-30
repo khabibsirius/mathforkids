@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2b4fc7" />
+    <meta
+      name="description"
+      content="Maths practice for children aged 5 to 10 — adding, taking away, times and sharing."
+    />
+    <title>Maths Club</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap"
+    />
+
+    <style>
+      /* Shown before React mounts, so the first frame is never a blank page. */
+      html {
+        background: #f3f6fb;
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+      }
+      #boot {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        font-family: 'Nunito', system-ui, sans-serif;
+        color: #46587a;
+        gap: 14px;
+      }
+      #boot .marks {
+        font-family: 'Baloo 2', system-ui, sans-serif;
+        font-size: 40px;
+        letter-spacing: 12px;
+        color: #2b4fc7;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        #boot .marks {
+          animation: bob 1.4s ease-in-out infinite;
+        }
+        @keyframes bob {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-6px);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="boot">
+        <div class="marks" aria-hidden="true">+ &minus; &times; &divide;</div>
+        <p>Getting your maths ready&hellip;</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

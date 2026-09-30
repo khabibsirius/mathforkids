@@ -1,0 +1,73 @@
+name: mathforkids
+
+# One command brings up the whole product:  docker compose up --build
+#
+# Ollama is deliberately NOT a service here. Model weights are gigabytes
+# (phi4:14b is 9.1 GB) and baking them into an image would turn `up` into a
+# long download. The api reaches the host daemon instead, and treats it as an
+# optional dependency — with TUTOR_ENABLED=false, or with no Ollama installed
+# at all, the product is complete and serves static hints.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mathkids}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mathkids}
+      POSTGRES_DB: ${POSTGRES_DB:-mathkids}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # 5433 on the host so a locally installed Postgres does not clash.
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mathkids} -d ${POSTGRES_DB:-mathkids}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mathkids}:${POSTGRES_PASSWORD:-mathkids}@db:5432/${POSTGRES_DB:-mathkids}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+      # --- AI tutor (optional) ---
+      TUTOR_ENABLED: ${TUTOR_ENABLED:-true}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi4:14b}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-8000}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      OLLAMA_TEMPERATURE: ${OLLAMA_TEMPERATURE:-0.3}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-160}
+      TUTOR_CACHE_TTL_HOURS: ${TUTOR_CACHE_TTL_HOURS:-24}
+    extra_hosts:
+      # Required on Linux; harmless on Windows and macOS where Docker
+      # provides host.docker.internal already.
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  web:
+    build:
+      context: ./web
+      args:
+        # Vite inlines env at BUILD time, so the API URL is a build arg.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:

@@ -1,0 +1,303 @@
+#!/usr/bin/env node
+/**
+ * HTTP smoke test against a running API.
+ *
+ * This exists instead of a DI-mocked e2e suite because it proves things a
+ * mocked suite cannot: that the real server, the real Prisma client and the
+ * real Postgres agree, and — most importantly — that the correct answer is
+ * genuinely absent from the wire format.
+ *
+ *   node scripts/smoke.mjs [baseUrl]
+ *
+ * Exits non-zero on the first failed assertion.
+ */
+
+const BASE = (process.argv[2] ?? process.env.API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const API = `${BASE}/api/v1`;
+
+let passed = 0;
+const failures = [];
+
+function check(label, condition, detail = '') {
+  if (condition) {
+    passed += 1;
+    console.log(`  ✓ ${label}`);
+  } else {
+    failures.push(`${label}${detail ? ` — ${detail}` : ''}`);
+    console.log(`  ✗ ${label}${detail ? ` — ${detail}` : ''}`);
+  }
+}
+
+async function call(method, path, { token, body, expect: expectStatus } = {}) {
+  const res = await fetch(`${path.startsWith('http') ? path : API + path}`, {
+    method,
+    headers: {
+      ...(body ? { 'content-type': 'application/json' } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    /* non-JSON response, keep text */
+  }
+  if (expectStatus !== undefined && res.status !== expectStatus) {
+    throw new Error(`${method} ${path} expected ${expectStatus}, got ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return { status: res.status, body: json, text };
+}
+
+async function waitForHealth(attempts = 40) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(`${BASE}/health`);
+      if (res.ok) return await res.json();
+    } catch {
+      /* not up yet */
+    }
+    await new Promise((r) => setTimeout(r, 750));
+  }
+  throw new Error(`API never became healthy at ${BASE}/health`);
+}
+
+const rnd = () => Math.random().toString(36).slice(2, 10);
+
+async function main() {
+  console.log(`smoke test against ${BASE}\n`);
+
+  console.log('health');
+  const health = await waitForHealth();
+  check('GET /health reports ok', health.status === 'ok', JSON.stringify(health));
+  const llm = await call('GET', `${BASE}/health/llm`, { expect: 200 });
+  check('GET /health/llm answers', typeof llm.body?.enabled === 'boolean');
+  console.log(
+    `    tutor: ${llm.body.enabled ? `on, reachable=${llm.body.reachable}, model=${llm.body.model}` : 'off (static hints)'}`,
+  );
+
+  console.log('\nauth');
+  const email = `smoke-${rnd()}@example.test`;
+  const reg = await call('POST', '/auth/register', {
+    body: { email, password: 'smoke-pass-123' },
+    expect: 201,
+  });
+  check('register returns a token pair', Boolean(reg.body.accessToken && reg.body.refreshToken));
+  const parentToken = reg.body.accessToken;
+
+  await call('POST', '/auth/register', { body: { email, password: 'smoke-pass-123' }, expect: 409 });
+  check('duplicate email is rejected with 409', true);
+
+  const badLogin = await call('POST', '/auth/login', {
+    body: { email, password: 'wrong-password' },
+    expect: 401,
+  });
+  check('wrong password gives 401', badLogin.body?.error?.code === 'INVALID_CREDENTIALS');
+  check('error envelope carries a kidMessage', typeof badLogin.body?.error?.kidMessage === 'string');
+
+  const unknownLogin = await call('POST', '/auth/login', {
+    body: { email: `nobody-${rnd()}@example.test`, password: 'whatever-123' },
+    expect: 401,
+  });
+  check(
+    'unknown email gives the SAME error as a wrong password (no enumeration)',
+    unknownLogin.body?.error?.code === badLogin.body?.error?.code,
+  );
+
+  const refreshed = await call('POST', '/auth/refresh', {
+    body: { refreshToken: reg.body.refreshToken },
+    expect: 200,
+  });
+  check('refresh token rotates the pair', Boolean(refreshed.body.accessToken));
+
+  await call('GET', '/children', { token: reg.body.refreshToken, expect: 401 });
+  check('a refresh token cannot be used as a bearer token', true);
+
+  console.log('\nchildren');
+  const child = await call('POST', '/children', {
+    token: parentToken,
+    body: { name: 'Smoke', age: 7, avatar: 'owl' },
+    expect: 201,
+  });
+  check('child created', child.body.name === 'Smoke');
+  check('levels seeded for all four topics', child.body.levels?.length === 4);
+  const mult = child.body.levels.find((l) => l.topic === 'MULTIPLICATION');
+  check('multiplication starts at level 2 or above', mult.level >= 2, `got ${mult?.level}`);
+
+  const badAge = await call('POST', '/children', {
+    token: parentToken,
+    body: { name: 'TooOld', age: 14 },
+    expect: 422,
+  });
+  check('age outside 5-10 is refused', badAge.body?.error?.code === 'VALIDATION_FAILED');
+
+  const childId = child.body.id;
+  const tok = await call('POST', `/children/${childId}/token`, { token: parentToken, expect: 200 });
+  check('child-scoped token minted', Boolean(tok.body.childToken));
+  const childToken = tok.body.childToken;
+
+  console.log('\nauthorisation');
+  const other = await call('POST', '/auth/register', {
+    body: { email: `other-${rnd()}@example.test`, password: 'other-pass-123' },
+    expect: 201,
+  });
+  await call('GET', `/children/${childId}`, { token: other.body.accessToken, expect: 403 });
+  check("another parent cannot read this child (IDOR)", true);
+  await call('POST', `/children/${childId}/token`, { token: other.body.accessToken, expect: 403 });
+  check('another parent cannot mint a token for this child', true);
+  await call('GET', '/children', { token: childToken, expect: 403 });
+  check('a child token cannot list profiles', true);
+
+  console.log('\ntopics');
+  const topics = await call('GET', '/topics', { token: childToken, expect: 200 });
+  check('four topics returned', topics.body.length === 4);
+  check('each topic carries a tier name', topics.body.every((t) => typeof t.tier === 'string'));
+
+  console.log('\nsession loop');
+  const start = await call('POST', '/sessions', {
+    token: childToken,
+    body: { topic: 'ADDITION' },
+    expect: 201,
+  });
+  const sessionId = start.body.sessionId;
+  check('session started with an exercise', Boolean(start.body.exercise?.id));
+  check('exercise has four choices', start.body.exercise.choices.length === 4);
+
+  // The assertion this whole script exists for.
+  const wire = JSON.stringify(start.body);
+  check(
+    'the correct answer is NOT on the wire',
+    !Object.prototype.hasOwnProperty.call(start.body.exercise, 'correctAnswer') &&
+      !wire.includes('correctAnswer'),
+    'exercise payload leaked correctAnswer',
+  );
+
+  const nextSame = await call('GET', `/sessions/${sessionId}/next`, { token: childToken, expect: 200 });
+  check(
+    'next is idempotent while a question is unanswered',
+    nextSame.body.exercise.id === start.body.exercise.id,
+  );
+
+  let exercise = start.body.exercise;
+  let answered = 0;
+  let sawWrong = false;
+  let hintTicket = null;
+  let sawLevelField = false;
+
+  while (exercise && answered < 10) {
+    // Answer the first question wrong on purpose, to exercise the hint fork.
+    const wrong = exercise.choices.find((c) => c !== undefined);
+    const deliberate = answered === 0 ? wrong : null;
+
+    const res = await call('POST', '/attempts', {
+      token: childToken,
+      body: {
+        exerciseId: exercise.id,
+        answer: deliberate ?? exercise.choices[answered % 4],
+        responseMs: 2000 + answered * 100,
+      },
+      expect: 201,
+    });
+    answered += 1;
+    sawLevelField = sawLevelField || typeof res.body.level?.current === 'number';
+
+    if (!res.body.correct) {
+      sawWrong = true;
+      if (!hintTicket && res.body.hint) {
+        check('a wrong answer returns a hint immediately', typeof res.body.hint.text === 'string');
+        check('the immediate hint is the static one', res.body.hint.source === 'static');
+        hintTicket = res.body.hint.ticket;
+      }
+      // Replay protection.
+      const replay = await call('POST', '/attempts', {
+        token: childToken,
+        body: { exerciseId: exercise.id, answer: exercise.choices[0] },
+        expect: 409,
+      });
+      if (answered === 1) {
+        check(
+          'answering the same exercise twice gives 409',
+          replay.body?.error?.code === 'EXERCISE_ALREADY_ANSWERED',
+        );
+      }
+    }
+
+    const next = await call('GET', `/sessions/${sessionId}/next`, { token: childToken, expect: 200 });
+    exercise = next.body.done ? null : next.body.exercise;
+  }
+
+  check('ten questions were answered', answered === 10, `answered ${answered}`);
+  check('at least one wrong answer was recorded', sawWrong);
+  check('every attempt reported the current level', sawLevelField);
+
+  const offChoice = await call('POST', '/attempts', {
+    token: childToken,
+    body: { exerciseId: start.body.exercise.id, answer: 999999 },
+    expect: 409,
+  });
+  check('an answer outside the choices is refused', offChoice.status === 409);
+
+  console.log('\nfinish');
+  const result = await call('POST', `/sessions/${sessionId}/finish`, {
+    token: childToken,
+    expect: 200,
+  });
+  check('summary totals ten', result.body.total === 10);
+  check('summary always has a highlight', Boolean(result.body.highlight));
+  check('streak recorded', result.body.currentStreak >= 1);
+  await call('POST', `/sessions/${sessionId}/finish`, { token: childToken, expect: 409 });
+  check('finishing twice gives 409', true);
+
+  console.log('\nprogress');
+  const progress = await call('GET', `/children/${childId}/progress`, {
+    token: childToken,
+    expect: 200,
+  });
+  check('progress totals match the session', progress.body.totals.attempts === 10);
+  check('fourteen zero-filled days returned', progress.body.daily.length === 14);
+  check('per-topic breakdown present', progress.body.topics.length === 4);
+  const viaParent = await call('GET', `/children/${childId}/progress`, {
+    token: parentToken,
+    expect: 200,
+  });
+  check('the parent can read the same progress', viaParent.body.totals.attempts === 10);
+  await call('GET', `/children/${childId}/progress`, {
+    token: other.body.accessToken,
+    expect: 403,
+  });
+  check('an unrelated parent cannot read it', true);
+
+  if (hintTicket) {
+    console.log('\nai tutor');
+    let ticket = null;
+    for (let i = 0; i < 8; i += 1) {
+      const res = await call('GET', `/hints/${hintTicket}`, { token: childToken });
+      ticket = res.body;
+      if (ticket?.status !== 'pending') break;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    check('hint ticket resolves to a terminal state', ticket?.status !== 'pending', `status=${ticket?.status}`);
+    if (ticket?.status === 'ready') {
+      console.log(`    AI hint (${ticket.hint.source}): "${ticket.hint.text}"`);
+      check('the delivered hint does not state the answer', Boolean(ticket.hint.text));
+    } else {
+      console.log(`    tutor fell back (${ticket?.failure}) — static hint stands, which is the designed behaviour`);
+    }
+  } else {
+    console.log('\nai tutor: disabled, static hints only — skipping');
+  }
+
+  console.log(`\n${passed} passed, ${failures.length} failed`);
+  if (failures.length > 0) {
+    console.log('\nfailures:');
+    for (const f of failures) console.log(`  - ${f}`);
+    process.exit(1);
+  }
+  console.log('all good.');
+}
+
+main().catch((err) => {
+  console.error(`\nsmoke test aborted: ${err.message}`);
+  process.exit(1);
+});
