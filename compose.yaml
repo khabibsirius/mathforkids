@@ -38,7 +38,11 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-mathkids}:${POSTGRES_PASSWORD:-mathkids}@db:5432/${POSTGRES_DB:-mathkids}
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change}
+      # Left empty on purpose. The API refuses to boot in production with a
+      # known example secret, so the entrypoint generates a real random one
+      # per container when this is unset. Set it in .env to keep sessions
+      # alive across `docker compose up` cycles.
+      JWT_SECRET: ${JWT_SECRET:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
       # --- AI tutor (optional) ---

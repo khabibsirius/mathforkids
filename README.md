@@ -439,8 +439,15 @@ cp .env.example .env          # optional — every value has a working default
 docker compose up --build
 ```
 
-Migrations are applied and the demo data seeded automatically on boot. Set
-`SEED_ON_BOOT=false` to skip the seed.
+Migrations are applied and the demo data seeded automatically on boot (the seed
+is idempotent, so restarting does not duplicate anything). Set
+`SEED_ON_BOOT=false` to skip it.
+
+You do not need to set a JWT secret to try it. The API refuses to start in
+production with a known example secret, so when `JWT_SECRET` is unset the
+entrypoint generates a real random one for that container. The only
+consequence is that everyone is signed out when the container is recreated —
+set `JWT_SECRET` in `.env` to keep sessions across restarts.
 
 ### Locally, without Docker
 
