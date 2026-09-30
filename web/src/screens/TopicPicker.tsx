@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ApiError, session } from '../api/client';
-import type { Topic } from '../api/types';
+import type { DailyChallenge, Topic } from '../api/types';
+import DailyCard from '../components/DailyCard';
 import { Avatar, Loading, Notice, TOPIC_CLASS, TopBar } from '../components/ui';
 
 /** "What shall we practise?" — one decision, four big targets. */
 export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
   const [topics, setTopics] = useState<Topic[] | null>(null);
+  const [daily, setDaily] = useState<DailyChallenge | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -30,6 +32,21 @@ export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
       alive = false;
     };
   }, [onLeave]);
+
+  // Best effort and separate from the topics fetch: a failure here should cost
+  // the child the challenge card, not the whole home screen.
+  useEffect(() => {
+    const childId = session.childId;
+    if (!childId) return;
+    let alive = true;
+    api
+      .daily(childId)
+      .then((d) => alive && setDaily(d))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   if (topics === null) return <Loading what="Getting the games ready" />;
 
@@ -60,6 +77,14 @@ export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
         </div>
 
         {error ? <Notice kind="bad">{error}</Notice> : null}
+
+        {daily ? (
+          <DailyCard
+            challenge={daily}
+            onPlay={(topic) => navigate(`/play/${topic}`)}
+            onClaimed={(next) => setDaily(next)}
+          />
+        ) : null}
 
         <div className="pick-grid pick-grid--topics">
           {topics.map((topic) => (

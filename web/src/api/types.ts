@@ -197,6 +197,32 @@ export interface Progress {
   weakest: { topic: TopicCode; label: string; accuracy: number } | null;
 }
 
+export interface DailyChallenge {
+  /** YYYY-MM-DD, UTC. */
+  date: string;
+  topic: TopicCode;
+  topicLabel: string;
+  symbol: string;
+  title: string;
+  description: string;
+  /** Correct answers needed today in this topic. */
+  target: number;
+  /** Correct answers so far today, counted server-side from the attempt log. */
+  progress: number;
+  complete: boolean;
+  /** Resets tomorrow. */
+  claimed: boolean;
+  xpReward: number;
+  level: number;
+  tier: string;
+}
+
+export interface DailyClaim {
+  xpAwarded: number;
+  xpTotal: number;
+  challenge: DailyChallenge;
+}
+
 export interface LlmHealth {
   enabled: boolean;
   reachable?: boolean;

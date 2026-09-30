@@ -53,11 +53,12 @@ model Child {
   lastActiveDate DateTime? @map("last_active_date") @db.Date
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  parent      Parent            @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent      Parent                 @relation(fields: [parentId], references: [id], onDelete: Cascade)
   topicLevels ChildTopicLevel[]
   sessions    Session[]
   attempts    Attempt[]
   badges      ChildBadge[]
+  dailyClaims DailyChallengeClaim[]
 
   @@index([parentId])
   @@map("children")
@@ -189,6 +190,27 @@ model ChildBadge {
 
   @@id([childId, badgeId])
   @@map("child_badges")
+}
+
+/// One row per child per day, recording that the daily challenge reward was
+/// collected.
+///
+/// The composite primary key is what makes "once per day" true: two taps
+/// racing each other are settled by the database, not by a check in the
+/// service that could interleave. Nothing about the challenge itself is stored
+/// — the topic is derived from the date and the progress is counted from the
+/// attempt log, so there is no second copy of the truth to drift.
+model DailyChallengeClaim {
+  childId   String   @map("child_id")
+  date      DateTime @db.Date
+  topic     Topic
+  xpAwarded Int      @map("xp_awarded")
+  claimedAt DateTime @default(now()) @map("claimed_at")
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@id([childId, date])
+  @@map("daily_challenge_claims")
 }
 
 /// Hint cache. Keyed on the shape of the problem plus the age band, so two

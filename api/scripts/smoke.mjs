@@ -434,6 +434,103 @@ async function main() {
   });
   check('an unrelated parent cannot read it', true);
 
+  // -----------------------------------------------------------------------
+  console.log('\ndaily challenge');
+  const solve = (topic, a, b) =>
+    topic === 'ADDITION' ? a + b
+    : topic === 'SUBTRACTION' ? a - b
+    : topic === 'MULTIPLICATION' ? a * b
+    : a / b;
+
+  const daily = await call('GET', `/children/${childId}/daily`, {
+    token: childToken,
+    expect: 200,
+  });
+  check('the challenge names a topic and a goal',
+    Boolean(daily.body.topic && daily.body.description) && daily.body.target > 0);
+  check('the target is scaled for a 7-year-old', daily.body.target === 8, `got ${daily.body.target}`);
+  check('the goal text states the number needed',
+    daily.body.description.includes(String(daily.body.target)));
+  check('progress never exceeds the target', daily.body.progress <= daily.body.target);
+  check('the challenge reports the level it will be played at', daily.body.level >= 1);
+
+  const viaParentDaily = await call('GET', `/children/${childId}/daily`, {
+    token: parentToken,
+    expect: 200,
+  });
+  check('a parent sees the same challenge', viaParentDaily.body.topic === daily.body.topic);
+  await call('POST', `/children/${childId}/daily/claim`, {
+    token: parentToken,
+    expect: 403,
+  });
+  check('a parent cannot collect the reward on the child’s behalf', true);
+
+  if (!daily.body.complete) {
+    const early = await call('POST', `/children/${childId}/daily/claim`, {
+      token: childToken,
+      expect: 409,
+    });
+    check('collecting before finishing is refused',
+      early.body?.error?.code === 'DAILY_NOT_COMPLETE');
+  }
+
+  // Answer correctly on purpose. The exercise payload carries the operands, so
+  // the right answer is computable here and submitted as a typed answer —
+  // which makes finishing the challenge deterministic rather than luck.
+  const need = daily.body.target - daily.body.progress;
+  const run = await call('POST', '/sessions', {
+    token: childToken,
+    body: { topic: daily.body.topic, targetCount: Math.max(3, Math.min(20, need)) },
+    expect: 201,
+  });
+  let dEx = run.body.exercise;
+  let scored = 0;
+  for (let i = 0; i < 20 && dEx && scored < need; i += 1) {
+    const res = await call('POST', '/attempts', {
+      token: childToken,
+      body: {
+        exerciseId: dEx.id,
+        answer: solve(dEx.topic, dEx.operandA, dEx.operandB),
+        responseMs: 1400,
+        typed: true,
+      },
+      expect: 201,
+    });
+    if (res.body.correct) scored += 1;
+    const nxt = await call('GET', `/sessions/${run.body.sessionId}/next`, {
+      token: childToken,
+      expect: 200,
+    });
+    dEx = nxt.body.done ? null : nxt.body.exercise;
+  }
+  check('a computed answer submitted as typed is graded correct', scored === need,
+    `scored ${scored} of ${need}`);
+
+  const afterWork = await call('GET', `/children/${childId}/daily`, {
+    token: childToken,
+    expect: 200,
+  });
+  check('the challenge completes once the goal is reached', afterWork.body.complete === true);
+  check('progress is capped at the target', afterWork.body.progress === afterWork.body.target);
+  check('it is not claimed until it is collected', afterWork.body.claimed === false);
+
+  const beforeXp = (await call('GET', `/children/${childId}`, { token: childToken, expect: 200 }))
+    .body.xpTotal;
+  const claimed = await call('POST', `/children/${childId}/daily/claim`, {
+    token: childToken,
+    expect: 200,
+  });
+  check('collecting awards the stated reward', claimed.body.xpAwarded === daily.body.xpReward);
+  check('the reward is added to the total', claimed.body.xpTotal === beforeXp + daily.body.xpReward);
+  check('the challenge reads as claimed afterwards', claimed.body.challenge.claimed === true);
+
+  const twice = await call('POST', `/children/${childId}/daily/claim`, {
+    token: childToken,
+    expect: 409,
+  });
+  check('collecting twice in one day is refused',
+    twice.body?.error?.code === 'DAILY_ALREADY_CLAIMED');
+
   if (hintTicket) {
     console.log('\nai tutor');
     // Window matches the client's (~22s), because a local model on CPU-only

@@ -990,6 +990,15 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
     <p>And that flag is <strong>never serialised to the browser</strong>. Knowing it client-side would give away that the options can be ignored, which is the whole point of the question. It comes back only in the attempt <em>result</em>, once the answer is recorded and can no longer be changed &mdash; where the interface uses it to say &ldquo;none of the buttons was right that time&rdquo; rather than leaving a child puzzled about why every option failed.</p>
     <p>The distractors are still chosen pedagogically in both cases, because those values are what let the tutor name the misconception behind a wrong answer.</p>
   </div>
+
+  <h3>One challenge a day</h3>
+  <p>The topic comes from the <strong>date alone</strong>, seeded from <code>YYYYMMDD</code>, so today is &ldquo;adding day&rdquo; for every child in the product rather than a different private chore each. That shared-event quality is the whole point; a personalised daily goal is just another task list. What scales with age is the target &mdash; 5 correct answers at 5&ndash;6, 8 at 7&ndash;8, 10 at 9&ndash;10 &mdash; and the questions come from that child's own level, so everyone takes part in the same challenge at their own difficulty.</p>
+
+  <div class="note">
+    <span class="note-h">No second copy of the truth</span>
+    <p>The challenge stores no definition. Its topic is derived from the date and its progress is counted from the attempt log, so there is no cached counter that can drift out of step with what the child actually did. The only new row is a claim keyed <code>(child_id, date)</code>, and that composite primary key is what makes &ldquo;collect once&rdquo; true: two taps racing each other are settled by the database rather than by a check in the service that could interleave. Completion is recomputed server-side on every claim &mdash; the client asks to collect and never asserts that it finished.</p>
+    <p>It deliberately does not gate the streak. The streak is for turning up; the challenge is for the goal. Missing one should not cost the other.</p>
+  </div>
 </section>
 
 <!-- ============ 8 ============ -->

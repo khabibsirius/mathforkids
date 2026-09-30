@@ -2,6 +2,8 @@ import type {
   AttemptResult,
   Child,
   ChildToken,
+  DailyChallenge,
+  DailyClaim,
   HintTicket,
   LlmHealth,
   NextExercise,
@@ -293,6 +295,19 @@ export const api = {
   // --- progress -----------------------------------------------------------
   progress(childId: string, as: Which = 'child'): Promise<Progress> {
     return request<Progress>(`/children/${childId}/progress`, { as });
+  },
+
+  // --- daily challenge ----------------------------------------------------
+  daily(childId: string, as: Which = 'child'): Promise<DailyChallenge> {
+    return request<DailyChallenge>(`/children/${childId}/daily`, { as });
+  },
+
+  /** Completion is recomputed server-side; this only asks. */
+  claimDaily(childId: string): Promise<DailyClaim> {
+    return request<DailyClaim>(`/children/${childId}/daily/claim`, {
+      method: 'POST',
+      as: 'child',
+    });
   },
 
   llmHealth(): Promise<LlmHealth> {

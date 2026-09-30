@@ -3,6 +3,7 @@ import { AttemptsModule } from './attempts/attempts.module';
 import { AuthModule } from './auth/auth.module';
 import { ChildrenModule } from './children/children.module';
 import { AppConfigModule } from './config/config.module';
+import { DailyModule } from './daily/daily.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProgressModule } from './progress/progress.module';
@@ -26,6 +27,7 @@ import { TutorModule } from './tutor/tutor.module';
     AttemptsModule,
     TutorModule,
     ProgressModule,
+    DailyModule,
     HealthModule,
   ],
 })

@@ -63,13 +63,40 @@ are predicates over that series. The parent dashboard is a read model of it.
 | Multiple choice **and** typed | Four options plus a keypad on every question; on ~30% of harder questions none of the four is correct, so the answer must be typed |
 | Correct / incorrect feedback | Immediate, with a hint on every wrong answer |
 | Score and progress tracking | XP, streak, badges, 14-day series |
-| Backend API | 17 endpoints, `/api/v1`, documented at `/api/docs` |
+| Backend API | 19 endpoints, `/api/v1`, documented at `/api/docs` |
 | Database persistence | PostgreSQL 16 via Prisma, 9 tables |
 | Basic authentication | Parent account + child-scoped tokens |
 | Child-appropriate UX | See [below](#designing-for-five-year-olds) |
 
-Bonuses included: adaptive difficulty, XP, badges, streaks, parent dashboard,
-progress charts, AI tutor, voice questions, Docker, API documentation, tests.
+Bonuses included: adaptive difficulty, XP, badges, streaks, **daily
+challenges**, parent dashboard, progress charts, AI tutor, voice questions,
+Docker, API documentation, tests. All twelve.
+
+### Daily challenge
+
+One challenge a day, and **the topic comes from the date alone** — so today is
+"adding day" for every child in the product, not a different private chore
+each. That shared-event quality is the point; a personalised goal would just be
+another task list.
+
+What *does* scale is the target: 5 correct for a 5&ndash;6 year old, 8 for
+7&ndash;8, 10 for 9&ndash;10. The questions come from that child's own level,
+so a five-year-old and a ten-year-old take part in the same challenge at their
+own difficulty.
+
+Two things it deliberately does not do:
+
+- **It stores no definition.** The topic is derived from the date, and progress
+  is counted from the attempt log. There is no second copy of the truth to
+  drift out of step with what actually happened.
+- **It does not gate the streak.** The streak is for turning up; the challenge
+  is for the goal. Missing one should not cost the other.
+
+The only new state is a claim row keyed `(childId, date)`, and that composite
+primary key is what makes "collect once" true — two taps racing each other are
+settled by the database, not by a check in the service that could interleave.
+Completion is always recomputed server-side: the client asks to collect, and
+never asserts that it finished.
 
 ---
 
@@ -182,7 +209,7 @@ them on every request, and both can be rebuilt from the log.
 
 ## API
 
-17 endpoints under `/api/v1`, plus two unauthenticated health routes at the
+19 endpoints under `/api/v1`, plus two unauthenticated health routes at the
 root. Interactive docs at **http://localhost:3000/api/docs**.
 
 | Method | Path | Auth |
@@ -204,6 +231,8 @@ root. Interactive docs at **http://localhost:3000/api/docs**.
 | `GET` | `/hints/:ticket` | child |
 | `POST` | `/sessions/:id/finish` | child |
 | `GET` | `/children/:id/progress` | parent or that child |
+| `GET` | `/children/:id/daily` | parent or that child |
+| `POST` | `/children/:id/daily/claim` | child |
 | `GET` | `/health` | — |
 | `GET` | `/health/llm` | — |
 
@@ -563,8 +592,8 @@ Every variable, with comments: [`.env.example`](.env.example) for Docker,
 
 ```bash
 cd api
-npm test                       # 99 unit tests over src/domain
-npm run smoke                  # 59 HTTP assertions against a running API
+npm test                       # 115 unit tests over src/domain
+npm run smoke                  # 75 HTTP assertions against a running API
 npm run tutor:check            # measure the AI path and the safety gate
 ```
 
@@ -595,6 +624,8 @@ mocked suite cannot:
 ✓ times tables cannot be set to level 1, which does not exist
 ✓ the choice persists, so the next round does not silently revert
 ✓ answering the same exercise twice gives 409
+✓ collecting the daily reward twice in one day is refused
+✓ a parent cannot collect the reward on the child's behalf
 ✓ next is idempotent while a question is unanswered
 ✓ the delivered hint does not state the answer
 ```
@@ -617,8 +648,8 @@ Stated plainly rather than left to be discovered:
   before this faces the internet.
 - **Refresh tokens are not revocable.** Stateless JWTs with no denylist; a
   logout is client-side only.
-- **The daily-challenge bonus is not built.** The streak already incentivises
-  the behaviour it was there to encourage.
+- **No push notification or reminder.** The daily challenge is there when a
+  child opens the app, but nothing prompts them to.
 - **The parent dashboard cannot reset progress.** Levels can be set per topic,
   but there is no way to clear a child's history or delete a profile.
 

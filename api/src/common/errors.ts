@@ -28,6 +28,8 @@ export type ErrorCode =
   | 'ANSWER_NOT_A_CHOICE'
   | 'HINT_NOT_FOUND'
   | 'TUTOR_DISABLED'
+  | 'DAILY_NOT_COMPLETE'
+  | 'DAILY_ALREADY_CLAIMED'
   | 'INTERNAL';
 
 interface ErrorSpec {
@@ -55,6 +57,11 @@ const SPEC: Record<ErrorCode, ErrorSpec> = {
   ANSWER_NOT_A_CHOICE: { status: 422, kidMessage: 'Pick one of the buttons.' },
   HINT_NOT_FOUND: { status: 404, kidMessage: 'No help for that one — have another go.' },
   TUTOR_DISABLED: { status: 503, kidMessage: 'The helper is having a rest.' },
+  DAILY_NOT_COMPLETE: { status: 409, kidMessage: 'Keep going — you are not finished yet!' },
+  DAILY_ALREADY_CLAIMED: {
+    status: 409,
+    kidMessage: 'You already got today’s prize. Come back tomorrow!',
+  },
   INTERNAL: { status: 500, kidMessage: 'Something went wrong. It is not your fault!' },
 };
 

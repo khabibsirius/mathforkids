@@ -186,6 +186,91 @@ button {
   box-shadow: var(--shadow);
 }
 
+/* --------------------------------------------------------- daily challenge */
+
+/* Violet rather than the usual blue, so it reads as the one special thing on
+   the screen without shouting. */
+.daily {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 3px solid var(--violet-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+
+.daily__mark {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--violet-soft);
+  color: var(--violet);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.daily__body {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.daily__eyebrow {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+.daily__goal {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.daily__action {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.daily__done {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--green);
+  background: var(--green-soft);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+}
+
+@media (max-width: 480px) {
+  .daily {
+    padding: 15px 16px;
+    gap: 12px;
+  }
+  .daily__action,
+  .daily__action .btn {
+    width: 100%;
+  }
+}
+
 /* ---------------------------------------------------------------- avatar */
 
 .avatar {
