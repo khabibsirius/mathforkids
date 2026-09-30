@@ -46,12 +46,12 @@
       <bpmn:outgoing>T_Miss</bpmn:outgoing>
     </bpmn:exclusiveGateway>
 
-    <bpmn:serviceTask id="Task_CallOllama" name="Call Ollama: JSON schema, temp 0.3, 8s timeout">
+    <bpmn:serviceTask id="Task_CallOllama" name="Call Ollama: JSON schema, low temperature, bounded timeout">
       <bpmn:incoming>T_Miss</bpmn:incoming>
       <bpmn:outgoing>T_04</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:boundaryEvent id="Boundary_Timeout" name="8s" attachedToRef="Task_CallOllama" cancelActivity="true">
+    <bpmn:boundaryEvent id="Boundary_Timeout" name="timeout" attachedToRef="Task_CallOllama" cancelActivity="true">
       <bpmn:outgoing>T_Timeout</bpmn:outgoing>
       <bpmn:timerEventDefinition id="TimerDef_01" />
     </bpmn:boundaryEvent>
@@ -156,7 +156,7 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Boundary_Timeout" bpmnElement="Boundary_Timeout">
         <dc:Bounds x="962" y="202" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="930" y="242" width="16" height="14" /></bpmndi:BPMNLabel>
+        <bpmndi:BPMNLabel><dc:Bounds x="908" y="242" width="48" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Boundary_Error" bpmnElement="Boundary_Error">
         <dc:Bounds x="1022" y="202" width="36" height="36" />
