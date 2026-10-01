@@ -40,7 +40,9 @@ load rather than showing an empty state.
 - [AI integration](#ai-integration)
 - [Adaptive difficulty](#adaptive-difficulty)
 - [Designing for five-year-olds](#designing-for-five-year-olds)
+- [Requirements](#requirements)
 - [Running it](#running-it)
+- [Troubleshooting](#troubleshooting)
 - [Tests](#tests)
 - [Known gaps](#known-gaps)
 - [Where AI was used to build this](#where-ai-was-used-to-build-this)
@@ -533,58 +535,208 @@ choices wiggle once. It never ends the turn and never costs points.
 
 ---
 
-## Running it
+## Requirements
 
-### With Docker (recommended)
+### To run it with Docker — the recommended path
+
+| | |
+| --- | --- |
+| **Docker Desktop** 24+ (Compose v2) | that's the whole list |
+| Free ports | `8080` web · `3000` api · `5433` db |
+| Disk | ~1.5 GB for the two images plus the Postgres volume |
+
+Nothing else. No Node, no Postgres, no global installs — the images carry
+their own toolchains.
+
+### To run it directly on your machine
+
+| | |
+| --- | --- |
+| **Node 24+** | `node -v`. Node 22 works; 24 is what it was built on |
+| **Postgres 16** | or just `docker compose up -d db`, which publishes one on `5433` |
+| Free ports | `5173` web dev server · `3000` api · `5433` db |
+
+### Optional, for the AI tutor
+
+[Ollama](https://ollama.com) with one local model pulled:
 
 ```bash
-cp .env.example .env          # optional — every value has a working default
+ollama pull qwen2.5-coder:7b      # ~4.7 GB
+```
+
+**The product is complete without it.** Every wrong answer still gets a written
+hint; the tutor only rephrases that hint for the child's age. Set
+`TUTOR_ENABLED=false`, or simply don't install Ollama, and nothing a child can
+perceive changes. Check status any time at `GET /health/llm`.
+
+### What it depends on, and why
+
+Dependencies are pinned in `api/package-lock.json` and `web/package-lock.json`,
+both committed, so `npm ci` is reproducible.
+
+| Package | Why it is here |
+| --- | --- |
+| `@nestjs/*` 11 | Modules, DI and guards. The structure is the point — it maps onto the process models |
+| `prisma` / `@prisma/client` 6 | Schema as the source of truth, typed queries, versioned migrations |
+| `class-validator` + `class-transformer` | DTO validation at the edge, so no handler parses raw input |
+| `@nestjs/jwt` | Token signing. No Passport — one guard is less machinery to explain |
+| `@nestjs/swagger` | OpenAPI from the decorators already present |
+| `dotenv` | Loads `.env` outside Docker; a silent no-op inside it |
+| `react` 19 + `react-dom` | — |
+| `react-router-dom` 7 | Real URLs, so a deep link and the back button work |
+| `vite` 6 + `@vitejs/plugin-react` | Build and dev server |
+| `vitest` 3 | Unit tests over `src/domain` |
+
+**No UI library, no charting library, no HTTP client.** The interface is
+hand-written CSS, the 14-day chart is hand-drawn SVG, and the API client is
+`fetch`. Each of those is a deliberate omission: a component kit would have
+fought the child-facing design, and a 60 KB charting dependency to draw
+fourteen rectangles is weight for its own sake.
+
+---
+
+## Running it
+
+### With Docker — one command
+
+```bash
+git clone https://github.com/khabibsirius/mathforkids.git
+cd mathforkids
 docker compose up --build
 ```
 
-Migrations are applied and the demo data seeded automatically on boot (the seed
-is idempotent, so restarting does not duplicate anything). Set
-`SEED_ON_BOOT=false` to skip it.
+Then open **http://localhost:8080** and sign in with `demo@mathforkids.local`
+/ `demo1234`.
 
-You do not need to set a JWT secret to try it. The API refuses to start in
-production with a known example secret, so when `JWT_SECRET` is unset the
-entrypoint generates a real random one for that container. The only
-consequence is that everyone is signed out when the container is recreated —
-set `JWT_SECRET` in `.env` to keep sessions across restarts.
+There is no `.env` to create — every value in `compose.yaml` has a working
+default. `cp .env.example .env` only if you want to change ports or point at a
+different Ollama.
 
-### Locally, without Docker
+On boot the api container applies migrations and seeds the demo data. The seed
+is idempotent, so restarting never duplicates anything; `SEED_ON_BOOT=false`
+skips it.
 
-Requires Node 24+ and a Postgres. The compose file publishes one on `5433`:
+You do not need to set a JWT secret. The API refuses to start in production
+with a known example secret, so when `JWT_SECRET` is unset the entrypoint mints
+a real random one for that container. The only consequence is that everyone is
+signed out when the container is recreated — set `JWT_SECRET` in `.env` to keep
+sessions across restarts.
+
+### Directly on your machine
 
 ```bash
+# 1. a database (or use your own Postgres and edit api/.env)
 docker compose up -d db
 
+# 2. api  →  http://localhost:3000
 cd api
 cp .env.example .env
-npm install
+npm install                    # postinstall runs `prisma generate`
 npx prisma migrate deploy
-npm run build && npm run seed
-npm run dev                    # http://localhost:3000
+npm run build
+npm run seed
+npm run dev
 
-cd ../web
+# 3. web  →  http://localhost:5173   (in a second terminal)
+cd web
 cp .env.example .env
 npm install
-npm run dev                    # http://localhost:5173
+npm run dev
 ```
 
-### On Linux
+`npm install` generates the Prisma client via a `postinstall` hook. Without a
+generated client `npm run build` cannot compile, so that hook is what makes a
+clean clone build on the first try.
 
-`host.docker.internal` does not resolve by default. `compose.yaml` maps it via
-`host-gateway`, and Ollama must listen on all interfaces rather than loopback:
+### Check that it worked
 
 ```bash
-OLLAMA_HOST=0.0.0.0 ollama serve
+curl http://localhost:3000/health          # {"status":"ok","database":"up"}
+curl http://localhost:3000/health/llm      # tutor status + safety-gate stats
+
+cd api
+npm test                                   # 115 unit tests, no database needed
+npm run smoke                              # 75 HTTP assertions against the live API
+npm run tutor:check                        # measures the AI path end to end
 ```
+
+`npm run smoke` is the one to run if you only run one: it exercises
+registration, authorisation, a full ten-question round, progress and the daily
+challenge against the real server, and asserts the security properties
+directly.
+
+### Useful URLs
+
+| | |
+| --- | --- |
+| Web app | http://localhost:8080 (Docker) · http://localhost:5173 (local) |
+| API | http://localhost:3000/api/v1 |
+| **API docs (Swagger)** | http://localhost:3000/api/docs |
+| Health | http://localhost:3000/health |
+| AI tutor status | http://localhost:3000/health/llm |
+| Database | `localhost:5433`, user/password/db all `mathkids` |
 
 ### Configuration
 
 Every variable, with comments: [`.env.example`](.env.example) for Docker,
-[`api/.env.example`](api/.env.example) for running the API directly.
+[`api/.env.example`](api/.env.example) for running the API directly,
+[`web/.env.example`](web/.env.example) for the frontend.
+
+---
+
+## Troubleshooting
+
+Each of these is a failure actually hit while building this, not a guess.
+
+**`docker compose up` does nothing / "cannot connect to the Docker daemon"**
+Docker Desktop is installed but the engine is stopped. Start it and wait for
+the whale icon to settle.
+
+**"port is already allocated"**
+Something else holds `8080`, `3000` or `5433`. Change them in `.env`:
+```bash
+WEB_PORT=8081
+API_PORT=3001
+DB_PORT=5434
+```
+
+**The api container restarts in a loop**
+Read the reason — it is printed:
+```bash
+docker compose logs api --tail 30
+```
+Configuration problems fail loudly at boot with a list of what is wrong, rather
+than at the first request that needs the missing value.
+
+**`npm run build` fails with "Cannot find module '.prisma/client'"**
+The Prisma client was not generated. `npm install` should do it via
+`postinstall`; run `npx prisma generate` in `api/` if it did not.
+
+**`prisma migrate dev` says the environment is non-interactive**
+Expected in a script. `migrate dev` wants confirmation before a destructive
+change; use `npx prisma migrate deploy`, which is designed for exactly this.
+
+**The AI hint never appears**
+Check `GET /health/llm` first. Likely one of:
+- `reachable: false` — Ollama is not running. Start it, or ignore it; static
+  hints are the designed fallback.
+- `modelPulled: false` — run `ollama pull qwen2.5-coder:7b`.
+- `timeouts` climbing — the model is too slow for the budget on your hardware.
+  Measure it with `npm run tutor:check` and either raise `OLLAMA_TIMEOUT_MS` or
+  pick a smaller model.
+
+**On Linux, the api cannot reach Ollama**
+`host.docker.internal` does not resolve by default. `compose.yaml` already maps
+it via `host-gateway`; Ollama must also listen on all interfaces:
+```bash
+OLLAMA_HOST=0.0.0.0 ollama serve
+```
+
+**Starting completely over**
+```bash
+docker compose down -v        # -v also drops the database volume
+docker compose up --build
+```
 
 ---
 
