@@ -297,16 +297,18 @@ footer p{max-width:70ch}
 <div class="shell">
 
 <header class="mast">
-  <p class="eyebrow">Process models · architecture · 70-hour plan</p>
+  <p class="eyebrow">Architecture · process models · how it was verified</p>
   <h1>Ten questions,<br>one loop.</h1>
-  <p class="standfirst">A math practice product for children aged 5&ndash;10, modelled end to end before a line of application code is written. Three BPMN&nbsp;2.0 processes, the architecture they imply, and an honest account of what will be hard.</p>
+  <p class="standfirst">A maths practice product for children aged 5&ndash;10, modelled end to end in BPMN&nbsp;2.0 before a line of application code existed &mdash; and then built to those models. This explains what runs, why each boundary sits where it does, and what the tests actually prove.</p>
   <ul class="chips">
     <li><b>NestJS</b> + Prisma</li>
     <li><b>PostgreSQL</b> 16</li>
-    <li><b>React</b> + Vite</li>
-    <li><b>Ollama</b> phi4:14b</li>
+    <li><b>React</b> 19 + Vite</li>
+    <li><b>Ollama</b> qwen2.5-coder:7b</li>
     <li><b>Docker</b> Compose</li>
-    <li>70 h budget</li>
+    <li><b>19</b> endpoints</li>
+    <li><b>115</b> unit tests</li>
+    <li><b>75</b> HTTP assertions</li>
   </ul>
 </header>
 
@@ -322,8 +324,8 @@ footer p{max-width:70ch}
     <li><a href="#tutor">The local tutor</a></li>
     <li><a href="#adapt">Adaptive difficulty</a></li>
     <li><a href="#ux">UX for small humans</a></li>
-    <li><a href="#risks">Risks</a></li>
-    <li><a href="#plan">70 hours</a></li>
+    <li><a href="#risks">Known limits</a></li>
+    <li><a href="#plan">How it was built</a></li>
   </ol>
 </nav>
 
@@ -781,7 +783,7 @@ prisma/
 <!-- ============ 4 ============ -->
 <section id="data">
   <span class="sec-no">04 — Data model</span>
-  <h2>Nine tables</h2>
+  <h2>Ten tables</h2>
   <p class="lede">The shape follows from one commitment: attempts are facts, everything else is either configuration or a projection of those facts.</p>
 
   <div class="tbl">
@@ -797,6 +799,7 @@ prisma/
         <tr><td class="m">badges</td><td>code, name, description, rule</td><td>Seeded reference data, not user rows.</td></tr>
         <tr><td class="m">child_badges</td><td>child_id, badge_id, awarded_at</td><td>Unique on the pair &mdash; a badge is earned once.</td></tr>
         <tr><td class="m">tutor_hints</td><td>cache_key, topic, a, b, age_band, hint, model, created_at</td><td>Unique on <code>cache_key</code>. Fallback output is never written here.</td></tr>
+        <tr><td class="m">daily_challenge_claims</td><td>child_id, date, topic, xp_awarded, claimed_at</td><td>Primary key <code>(child_id, date)</code> &mdash; that composite key <em>is</em> the once-a-day rule. Two taps racing are settled by Postgres, not by a check that could interleave.</td></tr>
       </tbody>
     </table>
   </div>
@@ -813,7 +816,7 @@ prisma/
 <!-- ============ 5 ============ -->
 <section id="api">
   <span class="sec-no">05 — API surface</span>
-  <h2>Seventeen endpoints</h2>
+  <h2>Nineteen endpoints</h2>
   <p class="lede">Every route in the brief, plus the two health checks that make the Ollama dependency debuggable instead of mysterious.</p>
 
   <div class="tbl">
@@ -835,6 +838,8 @@ prisma/
         <tr><td><span class="verb">GET</span></td><td class="m">/hints/:id</td><td>Poll for the tutor explanation</td><td>child</td></tr>
         <tr><td><span class="verb">POST</span></td><td class="m">/sessions/:id/finish</td><td>Close, summarise, award badges</td><td>child</td></tr>
         <tr><td><span class="verb">GET</span></td><td class="m">/children/:id/progress</td><td>Totals, streak, per-topic mastery</td><td>parent&nbsp;|&nbsp;child</td></tr>
+        <tr><td><span class="verb">GET</span></td><td class="m">/children/:id/daily</td><td>Today's challenge and progress towards it</td><td>parent&nbsp;|&nbsp;child</td></tr>
+        <tr><td><span class="verb">POST</span></td><td class="m">/children/:id/daily/claim</td><td>Collect the reward; completion recomputed server-side</td><td>child</td></tr>
         <tr><td><span class="verb">GET</span></td><td class="m">/health</td><td>Process + database</td><td>—</td></tr>
         <tr><td><span class="verb">GET</span></td><td class="m">/health/llm</td><td>Ollama reachable, model loaded, last latency</td><td>—</td></tr>
       </tbody>
@@ -1026,61 +1031,111 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
 
 <!-- ============ 9 ============ -->
 <section id="risks">
-  <span class="sec-no">09 — Risks</span>
-  <h2>What will actually go wrong</h2>
+  <span class="sec-no">09 — Known limits</span>
+  <h2>What this does not do</h2>
+  <p class="lede">Stated here rather than left for a reviewer to discover. Each one is a real property of the system as it stands, not a hypothetical.</p>
 
   <div class="risk">
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-hi">High</span>No public demo URL</b><span>Compose-only was the chosen deployment. The brief marks a deployed URL as <em>iloji bo'lsa</em> &mdash; optional &mdash; but a reviewer comparing candidates will open someone else's link and not yours.</span></div>
-      <div class="risk-fix"><span>Record a 90-second screen capture of a real session including a wrong answer and the tutor hint. Commit it, link it at the top of the README. Roughly 30 minutes for most of the benefit. Keep the Dockerfiles deploy-ready so Railway remains a one-hour option if time allows.</span></div>
+      <div class="risk-what"><b><span class="sev sev-md">Open</span>No public demo URL</b><span>Deployment is Compose-only, by choice. The brief marks a deployed URL as <em>iloji bo'lsa</em> &mdash; optional &mdash; but a reviewer comparing candidates will open someone else's link.</span></div>
+      <div class="risk-fix"><span>The Dockerfiles are deploy-ready and carry no local assumptions, so a hosted demo is about an hour's work. <code>docker compose up --build</code> is verified to bring the whole stack up from a clean checkout.</span></div>
     </div>
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-hi">High</span>Reviewer has no Ollama</b><span>Most reviewers will not have a 9&nbsp;GB model pulled. If the app errors, hangs, or shows a broken hint panel, they conclude the AI integration does not work.</span></div>
-      <div class="risk-fix"><span>Already handled structurally: the fallback path in the tutor model is the default when the daemon is unreachable. Add <code>GET /health/llm</code>, a one-line banner in the parent view rather than the child view, and a README section stating plainly that the product is complete without Ollama.</span></div>
+      <div class="risk-what"><b><span class="sev sev-md">Open</span>Hint requests queue into timeouts</b><span>Measured, not theoretical: of 13 model calls on the build machine, <strong>11 timed out</strong>. Ollama serialises per model and each hint takes ~11&nbsp;s, so a burst queues and every request past the first blows its budget.</span></div>
+      <div class="risk-fix"><span>No child is affected &mdash; the static hint is already on screen and the AI only ever upgrades it. The fix is a concurrency gate in <code>TutorService</code>: admit one or two calls and let the rest fall straight through to the static hint instead of queueing into a guaranteed timeout.</span></div>
     </div>
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-md">Medium</span>The model invents arithmetic</b><span>A 14 B model explaining subtraction to a seven-year-old will eventually produce a confidently wrong number. Teaching a child wrong math is worse than showing no hint at all.</span></div>
-      <div class="risk-fix"><span>Check 4 of the safety gate &mdash; every number in the hint must be <code>a</code>, <code>b</code>, or a counting number ≤&nbsp;12. Cheap, deterministic, and it catches the case that matters. Log every rejection and report the rate.</span></div>
+      <div class="risk-what"><b><span class="sev sev-md">Open</span>Hint tickets are in-process</b><span>The ticket store is an in-memory <code>Map</code>, not Redis. With more than one API replica a poll could land on the instance that did not generate the hint.</span></div>
+      <div class="risk-fix"><span>Deliberate: a ticket lives for a few seconds between one response and the poll after it, and a broker to carry that would be infrastructure for its own sake. The failure mode is benign &mdash; the client keeps the static hint. A shared store behind the same interface is the fix if it ever scales out.</span></div>
     </div>
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-md">Medium</span>Cold-start latency reads as a hang</b><span>First hint after five idle minutes takes 20&nbsp;s+ while the model loads. Demos idle by definition.</span></div>
-      <div class="risk-fix"><span><code>keep_alive: 30m</code> plus a warm-up call on API boot. The fork in the session model means even a cold call costs the child nothing &mdash; the static hint is already on screen.</span></div>
+      <div class="risk-what"><b><span class="sev sev-md">Open</span>No rate limit on <code>/auth/login</code></b><span>Nothing throttles repeated password attempts. Fine behind Compose on a laptop, not fine facing the internet.</span></div>
+      <div class="risk-fix"><span>A per-IP throttle on the auth routes before this is exposed. The endpoint already refuses to distinguish an unknown email from a wrong password, so it cannot be used to enumerate accounts in the meantime.</span></div>
     </div>
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-md">Medium</span>70 hours is tight</b><span>Core requirements plus six bonuses plus tests plus Docker plus documentation. The usual failure is 90% of everything and a working demo of nothing.</span></div>
-      <div class="risk-fix"><span>Phases 1&ndash;5 are the contract and are non-negotiable. Phases 6&ndash;8 are ranked so the cut line is decided in advance rather than at 3&nbsp;a.m.: badges and streaks before the parent dashboard, parent dashboard before progress charts.</span></div>
+      <div class="risk-what"><b><span class="sev sev-lo">Minor</span>Refresh tokens are not revocable</b><span>Stateless JWTs with no denylist, so signing out is a client-side act only.</span></div>
+      <div class="risk-fix"><span>Access tokens last 15 minutes, which bounds the exposure. A denylist table or token versioning on the parent row would close it properly.</span></div>
     </div>
     <div class="risk-row">
-      <div class="risk-what"><b><span class="sev sev-lo">Low</span>Git history reads as one dump</b><span>The brief grades <em>bosqichma-bosqich ishlanganmi</em> explicitly. Four commits over 70 hours is a bad signal regardless of code quality.</span></div>
-      <div class="risk-fix"><span>Commit at each phase boundary and at each meaningful unit inside it &mdash; roughly 45 commits. This design phase is already commit one, before any application code exists.</span></div>
+      <div class="risk-what"><b><span class="sev sev-lo">Minor</span>&ldquo;Always four options&rdquo; is enforced by code, not schema</b><span><code>exercises.choices</code> is nullable at the database level &mdash; Prisma's standard behaviour for scalar lists &mdash; even though the application always writes exactly four and the tests assert it.</span></div>
+      <div class="risk-fix"><span>A <code>CHECK (array_length(choices, 1) = 4)</code> constraint would make it structural rather than conventional.</span></div>
     </div>
+    <div class="risk-row">
+      <div class="risk-what"><b><span class="sev sev-lo">Minor</span>The parent dashboard cannot reset progress</b><span>Levels can be set per topic, but there is no way to clear a child's history or delete a profile.</span></div>
+      <div class="risk-fix"><span>Both are straightforward over an append-only log: a delete is a cascade, and a reset is a dated cutoff on the attempt query.</span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="note-h">Resolved, and worth saying how</span>
+    <p><strong>A reviewer without Ollama sees a complete product.</strong> The fallback is not an error path bolted on afterwards &mdash; it is the default route through process model 03, and four of the five ways through that model end at the static template. <code>TUTOR_ENABLED=false</code>, or simply no Ollama installed, changes nothing a child can perceive.</p>
+    <p><strong>Cold starts do not read as hangs.</strong> <code>keep_alive: 30m</code> plus a warm-up call on API boot, neither of which is awaited, so a slow or absent daemon never delays startup.</p>
+    <p><strong>The model does not teach wrong arithmetic.</strong> Check 4 of the safety gate requires every number in a hint to be one of the two operands or a counting number the child can see. It has rejected real output: a hint for <code>4 + 3</code> that asked a five-year-old &ldquo;how many more do you need to reach 7?&rdquo; &mdash; which is the answer.</p>
   </div>
 </section>
 
 <!-- ============ 10 ============ -->
 <section id="plan">
-  <span class="sec-no">10 — The plan</span>
-  <h2>Seventy hours</h2>
-  <p class="lede">Ordered so that a working, demonstrable product exists at the end of phase 5 &mdash; at 44 hours, with 26 to spare. Everything after that is additive, and can be cut without leaving a hole.</p>
+  <span class="sec-no">10 — How it was built</span>
+  <h2>Design first, then twelve commits</h2>
+  <p class="lede">The first commit in the repository contains three BPMN models and no <code>package.json</code>. That ordering is the point: every structural decision in this document was made before there was code to rationalise.</p>
 
-  <div class="phases">
-    <div class="phase"><div class="ph-n">00</div><div class="ph-t">Design</div><div class="ph-d">BPMN models, schema, API contract, repo skeleton. <em>Done.</em></div><div class="ph-h">3 h</div><div class="ph-bar"><i style="width:4.3%"></i></div></div>
-    <div class="phase"><div class="ph-n">01</div><div class="ph-t">Skeleton</div><div class="ph-d">Nest + Prisma + Postgres under Compose, health endpoint, migrations, seed script.</div><div class="ph-h">5 h</div><div class="ph-bar"><i style="width:7.1%"></i></div></div>
-    <div class="phase"><div class="ph-n">02</div><div class="ph-t">Auth</div><div class="ph-d">Parent register and login, argon2id, JWT pair, child-scoped tokens, guards, the IDOR test.</div><div class="ph-h">6 h</div><div class="ph-bar"><i style="width:8.6%"></i></div></div>
-    <div class="phase"><div class="ph-n">03</div><div class="ph-t">Domain</div><div class="ph-d">Children, topics, the exercise generator with its distractor logic, the five levels.</div><div class="ph-h">8 h</div><div class="ph-bar"><i style="width:11.4%"></i></div></div>
-    <div class="phase"><div class="ph-n">04</div><div class="ph-t">Session loop</div><div class="ph-d">Sessions, attempts, grading, XP, the adaptive rule. The whole of process model 2, server side.</div><div class="ph-h">10 h</div><div class="ph-bar"><i style="width:14.3%"></i></div></div>
-    <div class="phase"><div class="ph-n">05</div><div class="ph-t">Frontend core</div><div class="ph-d">Shell, profile picker, topic picker, play screen, feedback, results. <strong>Working product from here.</strong></div><div class="ph-h">12 h</div><div class="ph-bar"><i style="width:17.1%"></i></div></div>
-    <div class="phase"><div class="ph-n">06</div><div class="ph-t">Gamification</div><div class="ph-d">Streaks, badges, daily challenge, progress charts.</div><div class="ph-h">7 h</div><div class="ph-bar"><i style="width:10%"></i></div></div>
-    <div class="phase"><div class="ph-n">07</div><div class="ph-t">AI tutor</div><div class="ph-d">Ollama client, JSON schema, the seven checks, cache, fallback, <code>/health/llm</code>.</div><div class="ph-h">7 h</div><div class="ph-bar"><i style="width:10%"></i></div></div>
-    <div class="phase"><div class="ph-n">08</div><div class="ph-t">Parent dashboard</div><div class="ph-d">Read-only view over the attempt log: accuracy by topic, activity, weak spots.</div><div class="ph-h">4 h</div><div class="ph-bar"><i style="width:5.7%"></i></div></div>
-    <div class="phase"><div class="ph-n">09</div><div class="ph-t">Tests</div><div class="ph-d">Unit on the generator, the adaptive rule and the safety gate; e2e on register → play → progress.</div><div class="ph-h">5 h</div><div class="ph-bar"><i style="width:7.1%"></i></div></div>
-    <div class="phase"><div class="ph-n">10</div><div class="ph-t">Docs &amp; polish</div><div class="ph-d">README, setup, OpenAPI, the demo recording, final pass.</div><div class="ph-h">3 h</div><div class="ph-bar"><i style="width:4.3%"></i></div></div>
-    <div class="totalrow"><span>11 phases · ~45 commits</span><b>70 h</b></div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th class="m">commit</th><th>what it did</th><th>why it exists</th></tr></thead>
+      <tbody>
+        <tr><td class="m">a2acf3a</td><td>Three BPMN 2.0 process models</td><td>Design only. No application code in the repository at this point.</td></tr>
+        <tr><td class="m">87643ca</td><td>Pin line endings to LF</td><td>Committed before the first script, not after the first <em>&ldquo;no such file or directory&rdquo;</em> from a CRLF shebang in a Linux container.</td></tr>
+        <tr><td class="m">c4ca022</td><td>The product &mdash; API, interface, tests, Docker</td><td>The models turned into modules one-to-one.</td></tr>
+        <tr><td class="m">ec20a52</td><td>Choose the model on measurement</td><td><code>phi4:14b</code> was the documented default on reputation. Timing it showed 22.7&nbsp;s against an 8&nbsp;s budget on a machine with no GPU offload &mdash; the tutor was architecturally correct and functionally dead.</td></tr>
+        <tr><td class="m">630df61</td><td>Make diagram timeout labels configuration-independent</td><td>The diagrams asserted &ldquo;8s&rdquo; after the config had changed to 20&nbsp;s. A diagram that contradicts the repository is worse than no diagram.</td></tr>
+        <tr><td class="m">9c4f5f1</td><td>Make <code>docker compose up</code> actually work</td><td>Found by running the documented quick start rather than reading it. Compose shipped a <code>JWT_SECRET</code> that the project's own production guard correctly refused.</td></tr>
+        <tr><td class="m">39021f8</td><td>Selectable difficulty</td><td>Levels existed and adapted, but nothing changed them &mdash; a graded requirement a reviewer could not demonstrate.</td></tr>
+        <tr><td class="m">999eed0</td><td>Stop flex and grid children overflowing</td><td>One CSS default (<code>min-width: auto</code>) hit in six places.</td></tr>
+        <tr><td class="m">d5186bc</td><td>Typed answers</td><td>Four options let a child score 25% by guessing.</td></tr>
+        <tr><td class="m">7a00c7e</td><td>Keypad always on screen; options sometimes all wrong</td><td>Third attempt at this, and the right one. Both inputs visible at once makes the trap fair rather than a gotcha.</td></tr>
+        <tr><td class="m">4ccf827</td><td>Daily challenge</td><td>The one bonus previously dropped, on the wrong argument that the streak covered it.</td></tr>
+        <tr><td class="m">688e455</td><td>Make the parent dashboard reachable</td><td>It had exactly one link, on a screen that disappears the moment a child is selected.</td></tr>
+      </tbody>
+    </table>
   </div>
 
+  <h3>What the tests actually prove</h3>
+
+  <div class="decks">
+    <div class="deck">
+      <span class="tag">115 unit tests</span>
+      <h4>No database, no DI container</h4>
+      <p>They run in 1.4&nbsp;s because <code>src/domain/</code> imports neither Prisma nor Nest. That constraint is what makes the generator, the adaptive rule, the scoring, the tier mapping and all seven safety checks testable as plain functions.</p>
+    </div>
+    <div class="deck">
+      <span class="tag">75 HTTP assertions</span>
+      <h4>Against the real stack</h4>
+      <p>Real server, real Prisma, real Postgres. It exists instead of a mocked e2e suite because it can prove what a mocked one cannot: that <em>the correct answer is genuinely absent from the wire format</em>.</p>
+    </div>
+    <div class="deck">
+      <span class="tag">Found by testing</span>
+      <h4>Four real defects</h4>
+      <p>Division distractors ranked the weaker candidate; level-1 multiplication was not clamped; the Compose quick start crashed in a restart loop; <code>phi4</code> timed out on every hint. None would have been caught by reading.</p>
+    </div>
+  </div>
+
+  <p>The security properties are assertions, not prose. These run on every smoke pass:</p>
+  <pre><span class="c">✓</span> the correct answer is NOT on the wire
+<span class="c">✓</span> the payload reveals neither the answer nor whether it is among the options
+<span class="c">✓</span> unknown email gives the SAME error as a wrong password (no enumeration)
+<span class="c">✓</span> a refresh token cannot be used as a bearer token
+<span class="c">✓</span> another parent cannot read this child (IDOR)
+<span class="c">✓</span> a child token cannot list profiles
+<span class="c">✓</span> a child cannot set their own level through the parent route
+<span class="c">✓</span> collecting the daily reward twice in one day is refused
+<span class="c">✓</span> answering the same exercise twice gives 409</pre>
+
   <div class="note">
-    <span class="note-h">Where the AI-assistance answer comes from</span>
-    <p>The brief asks the candidate to explain where they used AI and to understand the generated code. The defensible version of that answer is structural, not apologetic: the process models above were the thinking, and they were done first. Generated code that implements a model you drew is code you can walk a reviewer through. Generated code that <em>is</em> the design is not.</p>
+    <span class="note-h">On building this with AI assistance</span>
+    <p>AI wrote most of the code in this repository. What it did not do is make the decisions. The three process models came first, before any application code existed, and every structural choice in this document &mdash; the answer staying server-side, the asynchronous fork on a wrong answer, difficulty per topic, attempts as an append-only log, the seven-check gate, scrypt over argon2, Ollama outside the Compose network &mdash; was settled at that stage and then implemented.</p>
+    <p>That distinction is the whole of it. Generated code that implements a model you drew is code you can walk someone through. Generated code that <em>is</em> the design is not.</p>
+    <p>The verification is where the claim is cashed. Property-style tests over 200 seeds surfaced two real generator bugs; running the documented quick start surfaced a third; timing the model surfaced a fourth. The commit history keeps the failures rather than squashing them &mdash; two failing tests and six type errors on the first full run are in there, along with what each one actually was.</p>
   </div>
 </section>
 
@@ -1088,7 +1143,7 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
 </div>
 
 <footer>
-  <p>Design phase for <strong>Kids Math Learning</strong> &mdash; a math practice product for children aged 5&ndash;10. Source BPMN 2.0 models in <code>docs/bpmn/</code>; all three validate structurally against sequence-flow, shape and lane-partition checks.</p>
+  <p><strong>Kids Math Learning</strong> &mdash; maths practice for children aged 5&ndash;10. Source BPMN 2.0 models in <code>docs/bpmn/</code>; all three validate structurally against sequence-flow, shape and lane-partition checks, and open in Camunda Modeler or demo.bpmn.io. Setup instructions are in the README; the whole stack starts with <code>docker compose up --build</code>.</p>
 </footer>
 
 </div>
