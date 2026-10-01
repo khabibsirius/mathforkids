@@ -54,16 +54,25 @@ export default function TopicPicker({ onLeave }: { onLeave: () => void }) {
     <div className="shell">
       <TopBar
         right={
-          <div className="who">
-            <Avatar name={session.childAvatar} />
-            <div style={{ lineHeight: 1.25 }}>
-              <strong>{session.childName}</strong>
-              <div className="tiny">Not you?{' '}
-                <button type="button" className="btn btn--ghost" style={{ padding: 0, minHeight: 0 }} onClick={onLeave}>
-                  Switch
-                </button>
+          // The parent dashboard used to be reachable only from the "who is
+          // playing?" screen, which disappears the moment a child is chosen —
+          // so once you were playing, the grown-up view was unreachable
+          // without dropping the child session. It belongs here too.
+          <div className="row">
+            <div className="who">
+              <Avatar name={session.childAvatar} />
+              <div style={{ lineHeight: 1.25 }}>
+                <strong>{session.childName}</strong>
+                <div className="tiny">Not you?{' '}
+                  <button type="button" className="btn btn--ghost" style={{ padding: 0, minHeight: 0 }} onClick={onLeave}>
+                    Switch
+                  </button>
+                </div>
               </div>
             </div>
+            <Link to="/parent" className="btn">
+              <span aria-hidden="true">{'\u{1F4CA}'}</span> Grown-up view
+            </Link>
           </div>
         }
       />
