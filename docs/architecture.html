@@ -1077,25 +1077,27 @@ TUTOR_CACHE_TTL_HOURS=24</pre>
 <!-- ============ 10 ============ -->
 <section id="plan">
   <span class="sec-no">10 — How it was built</span>
-  <h2>Design first, then twelve commits</h2>
-  <p class="lede">The first commit in the repository contains three BPMN models and no <code>package.json</code>. That ordering is the point: every structural decision in this document was made before there was code to rationalise.</p>
+  <h2>Design first, then the build</h2>
+  <p class="lede">The first commit in the repository contains three BPMN models and no <code>package.json</code>. That ordering is the point: every structural decision in this document was made before there was code to rationalise. What follows is the build sequence, in order, with why each step exists.</p>
 
   <div class="tbl">
     <table>
-      <thead><tr><th class="m">commit</th><th>what it did</th><th>why it exists</th></tr></thead>
+      <thead><tr><th class="m">#</th><th>what it did</th><th>why it exists</th></tr></thead>
       <tbody>
-        <tr><td class="m">a2acf3a</td><td>Three BPMN 2.0 process models</td><td>Design only. No application code in the repository at this point.</td></tr>
-        <tr><td class="m">87643ca</td><td>Pin line endings to LF</td><td>Committed before the first script, not after the first <em>&ldquo;no such file or directory&rdquo;</em> from a CRLF shebang in a Linux container.</td></tr>
-        <tr><td class="m">c4ca022</td><td>The product &mdash; API, interface, tests, Docker</td><td>The models turned into modules one-to-one.</td></tr>
-        <tr><td class="m">ec20a52</td><td>Choose the model on measurement</td><td><code>phi4:14b</code> was the documented default on reputation. Timing it showed 22.7&nbsp;s against an 8&nbsp;s budget on a machine with no GPU offload &mdash; the tutor was architecturally correct and functionally dead.</td></tr>
-        <tr><td class="m">630df61</td><td>Make diagram timeout labels configuration-independent</td><td>The diagrams asserted &ldquo;8s&rdquo; after the config had changed to 20&nbsp;s. A diagram that contradicts the repository is worse than no diagram.</td></tr>
-        <tr><td class="m">9c4f5f1</td><td>Make <code>docker compose up</code> actually work</td><td>Found by running the documented quick start rather than reading it. Compose shipped a <code>JWT_SECRET</code> that the project's own production guard correctly refused.</td></tr>
-        <tr><td class="m">39021f8</td><td>Selectable difficulty</td><td>Levels existed and adapted, but nothing changed them &mdash; a graded requirement a reviewer could not demonstrate.</td></tr>
-        <tr><td class="m">999eed0</td><td>Stop flex and grid children overflowing</td><td>One CSS default (<code>min-width: auto</code>) hit in six places.</td></tr>
-        <tr><td class="m">d5186bc</td><td>Typed answers</td><td>Four options let a child score 25% by guessing.</td></tr>
-        <tr><td class="m">7a00c7e</td><td>Keypad always on screen; options sometimes all wrong</td><td>Third attempt at this, and the right one. Both inputs visible at once makes the trap fair rather than a gotcha.</td></tr>
-        <tr><td class="m">4ccf827</td><td>Daily challenge</td><td>The one bonus previously dropped, on the wrong argument that the streak covered it.</td></tr>
-        <tr><td class="m">688e455</td><td>Make the parent dashboard reachable</td><td>It had exactly one link, on a screen that disappears the moment a child is selected.</td></tr>
+        <tr><td class="m">01</td><td>Three BPMN 2.0 process models</td><td>Design only. No application code in the repository at this point.</td></tr>
+        <tr><td class="m">02</td><td>Pin line endings to LF</td><td>Committed before the first script, not after the first <em>&ldquo;no such file or directory&rdquo;</em> from a CRLF shebang in a Linux container.</td></tr>
+        <tr><td class="m">03</td><td>The product &mdash; API, interface, tests, Docker</td><td>The models turned into modules one-to-one.</td></tr>
+        <tr><td class="m">04</td><td>Choose the model on measurement</td><td><code>phi4:14b</code> was the documented default on reputation. Timing it showed 22.7&nbsp;s against an 8&nbsp;s budget on a machine with no GPU offload &mdash; the tutor was architecturally correct and functionally dead.</td></tr>
+        <tr><td class="m">05</td><td>Make diagram timeout labels configuration-independent</td><td>The diagrams asserted &ldquo;8s&rdquo; after the config had changed to 20&nbsp;s. A diagram that contradicts the repository is worse than no diagram.</td></tr>
+        <tr><td class="m">06</td><td>Make <code>docker compose up</code> actually work</td><td>Found by running the documented quick start rather than reading it. Compose shipped a <code>JWT_SECRET</code> that the project's own production guard correctly refused.</td></tr>
+        <tr><td class="m">07</td><td>Selectable difficulty</td><td>Levels existed and adapted, but nothing changed them &mdash; a graded requirement a reviewer could not demonstrate.</td></tr>
+        <tr><td class="m">08</td><td>Stop flex and grid children overflowing</td><td>One CSS default (<code>min-width: auto</code>) hit in six places.</td></tr>
+        <tr><td class="m">09</td><td>Typed answers</td><td>Four options let a child score 25% by guessing.</td></tr>
+        <tr><td class="m">10</td><td>Keypad always on screen; options sometimes all wrong</td><td>Third attempt at this, and the right one. Both inputs visible at once makes the trap fair rather than a gotcha.</td></tr>
+        <tr><td class="m">11</td><td>Daily challenge</td><td>The one bonus previously dropped, on the wrong argument that the streak covered it.</td></tr>
+        <tr><td class="m">12</td><td>Make the parent dashboard reachable</td><td>It had exactly one link, on a screen that disappears the moment a child is selected.</td></tr>
+        <tr><td class="m">13</td><td>Rewrite the architecture document</td><td>It had been written in the design phase and had drifted into claiming things the repository contradicts.</td></tr>
+        <tr><td class="m">14</td><td>Setup instructions, and fix the clean clone</td><td>The documented local path failed on a fresh clone &mdash; nothing generated the Prisma client before the build. Found by cloning the public repo and following the README verbatim.</td></tr>
       </tbody>
     </table>
   </div>
